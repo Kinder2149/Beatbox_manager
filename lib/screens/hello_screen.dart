@@ -6,6 +6,7 @@ import '../providers/unified_providers.dart';
 import 'package:spotify/spotify.dart' show PlaylistSimple, TrackSaved;
 import '../services/navigation_service.dart';
 import '../widgets/unified_widgets.dart';
+import 'package:beatbox_manager/screens/magic_sets/magic_sets_screen.dart';
 
 
 
@@ -257,29 +258,29 @@ Widget _buildStatItem(
   );
 }
 
-  // Dans la méthode _buildActionButtons()
+
 Widget _buildActionButtons(BuildContext context, WidgetRef ref) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      // Bouton Playlists
+      // Bouton Playlists existant
       ElevatedButton.icon(
         onPressed: () => ref.read(navigationServiceProvider).goToPlaylists(),
         icon: const Icon(Icons.playlist_play),
         label: const Text('Voir mes playlists'),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
-          backgroundColor: AppTheme.spotifyGreen, // Couleur de fond
-          foregroundColor: Colors.white, // Couleur du texte en blanc
+          backgroundColor: AppTheme.spotifyGreen,
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10), // Coins arrondis
+            borderRadius: BorderRadius.circular(10),
           ),
         ),
       ),
 
       const SizedBox(height: 12),
 
-      // Bouton Titres likés
+      // Bouton Titres likés existant
       OutlinedButton.icon(
         onPressed: () => ref.read(navigationServiceProvider).goToLikedTracks(),
         icon: const Icon(Icons.favorite),
@@ -293,8 +294,23 @@ Widget _buildActionButtons(BuildContext context, WidgetRef ref) {
           ),
         ),
       ),
+
       const SizedBox(height: 12),
 
+      // Nouveau bouton Magic Sets
+      ElevatedButton.icon(
+        onPressed: () => ref.read(navigationServiceProvider).goToMagicSets(),
+        icon: const Icon(Icons.auto_awesome),  // Icône magique
+        label: const Text('Magic Sets'),
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          backgroundColor: AppTheme.spotifyGreen.withOpacity(0.8),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      ),
     ],
   );
 }

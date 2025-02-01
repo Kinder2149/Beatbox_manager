@@ -63,7 +63,6 @@ class _$SpotifyDataCopyWithImpl<$Res, $Val extends SpotifyData>
     Object? tracks = null,
     Object? playlists = null,
     Object? likedTracks = null,
-    Object? magicSets = null,
     Object? userName = freezed,
     Object? isLoading = null,
     Object? error = freezed,
@@ -130,7 +129,6 @@ class __$$SpotifyDataImplCopyWithImpl<$Res>
     Object? tracks = null,
     Object? playlists = null,
     Object? likedTracks = null,
-    Object? magicSets = null,
     Object? userName = freezed,
     Object? isLoading = null,
     Object? error = freezed,
@@ -205,9 +203,6 @@ class _$SpotifyDataImpl implements _SpotifyData {
     return EqualUnmodifiableListView(_likedTracks);
   }
 
-
-
-// Nouvelle ligne
   @override
   final String? userName;
   @override

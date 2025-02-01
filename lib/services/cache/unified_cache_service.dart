@@ -4,6 +4,10 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spotify/spotify.dart';
 import 'package:beatbox_manager/providers/cache_provider.dart';
+import '../../models/magic_set_models.dart';
+import 'package:spotify/spotify.dart' as spotify;
+import 'package:spotify/spotify.dart' hide Image; // Cache l'Image de spotify
+import 'package:flutter/material.dart' show Image;
 
 class CacheConfig {
   final Duration validityDuration;
@@ -43,6 +47,9 @@ class UnifiedCacheService {
   static const String _playlistsCacheKey = 'playlists_cache_v2';
   static const String _likedTracksCacheKey = 'liked_tracks_cache_v2';
   static const String _playlistTracksCachePrefix = 'playlist_tracks_v2_';
+  static const String _magicSetsCacheKey = 'magic_sets_cache_v1';
+  static const String _tagsCacheKey = 'tags_cache_v1';
+  static const String _templatesCacheKey = 'templates_cache_v1';
 
   final CacheConfig config;
   final Map<String, CacheEntry<dynamic>> _memoryCache = {};
@@ -182,7 +189,25 @@ class UnifiedCacheService {
       return null;
     }
   }
+  Future<void> cacheMagicSets(List<MagicSet> sets) async {
+    await set(_magicSetsCacheKey, sets.map((s) => s.toJson()).toList());
+  }
 
+  Future<List<MagicSet>?> getCachedMagicSets() async {
+    final data = await get<List<dynamic>>(_magicSetsCacheKey);
+    if (data == null) return null;
+    return data.map((json) => MagicSet.fromJson(json as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> cacheTags(List<Tag> tags) async {
+    await set(_tagsCacheKey, tags.map((t) => t.toJson()).toList());
+  }
+
+  Future<List<Tag>?> getCachedTags() async {
+    final data = await get<List<dynamic>>(_tagsCacheKey);
+    if (data == null) return null;
+    return data.map((json) => Tag.fromJson(json as Map<String, dynamic>)).toList();
+  }
   Future<void> cachePlaylistTracks(String playlistId, List<Track> tracks) async {
     final key = '$_playlistTracksCachePrefix$playlistId';
     final tracksData = tracks.map(_convertTrackToJson).toList();
@@ -211,40 +236,28 @@ class UnifiedCacheService {
 
     if (data['images'] != null) {
       playlist.images = (data['images'] as List).map((img) =>
-      Image()..url = img['url'] as String
+      spotify.Image()..url = img['url'] as String
       ).toList();
     }
 
-    playlist.tracksLink = TracksLink()
+    playlist.tracksLink = spotify.TracksLink()
       ..href = 'spotify:playlist:${data['id']}:tracks'
       ..total = data['tracksTotal'] as int?;
 
     return playlist;
   }
-
   Track _convertToTrack(Map<String, dynamic> data) {
-    final track = Track()
+    final track = spotify.Track()
       ..id = data['id']
       ..name = data['name'];
 
-    if (data['artists'] != null) {
-      track.artists = (data['artists'] as List).map((artist) =>
-      Artist()
-        ..id = artist['id']
-        ..name = artist['name']
-      ).toList();
-    }
-
-    if (data['album'] != null) {
-      track.album = Album()
+    if (data['album'] != null && data['album']['images'] != null) {
+      track.album = spotify.Album()
         ..id = data['album']['id']
-        ..name = data['album']['name'];
-
-      if (data['album']['images'] != null) {
-        track.album?.images = (data['album']['images'] as List).map((img) =>
-        Image()..url = img['url']
+        ..name = data['album']['name']
+        ..images = (data['album']['images'] as List).map((img) =>
+        spotify.Image()..url = img['url'] as String
         ).toList();
-      }
     }
 
     return track;
@@ -316,4 +329,7 @@ class UnifiedCacheService {
       }
     }
   }
+
 }
+
+

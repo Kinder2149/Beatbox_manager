@@ -10,6 +10,8 @@ import 'package:beatbox_manager/providers/cache_provider.dart';
 import 'cache_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:beatbox_manager/screens/hello_screen.dart';
+import '../models/magic_set_models.dart';
+import '../services/magic_set_service.dart';
 
 
 

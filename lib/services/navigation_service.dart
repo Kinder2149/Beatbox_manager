@@ -4,7 +4,9 @@ import 'package:beatbox_manager/config/routes.dart';
 
 
 class NavigationService {
-  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  GlobalKey<NavigatorState> get navigatorKey => _navigatorKey;
+
 
   void _navigate(String routeName, {Object? arguments}) {
     try {
@@ -21,6 +23,10 @@ class NavigationService {
       handleNavigationError(error);
     }
   }
+  void goToMagicSets() {
+    _navigatorKey.currentState?.pushNamed(AppRoutes.magicSets);
+  }
+
 
   void goToHello() {
     try {

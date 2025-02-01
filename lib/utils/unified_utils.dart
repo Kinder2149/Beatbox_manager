@@ -4,6 +4,12 @@ import 'dart:async';
 import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:csv/csv.dart';
+import '../models/magic_set_models.dart';
 
 
 // Constants
@@ -349,3 +355,86 @@ Future<T> retryWithBackoff<T>(
   }
 }
 
+class MagicSetExporter {
+  static Future<File> exportAsPDF(MagicSet set) async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        build: (context) {
+          return pw.Column(
+            children: [
+              pw.Header(
+                level: 0,
+                child: pw.Text('Magic Set: ${set.name}'),
+              ),
+              pw.Paragraph(text: set.description),
+              pw.Header(
+                level: 1,
+                child: pw.Text('Tags'),
+              ),
+              pw.Column(
+                children: set.tags.map((tag) =>
+                    pw.Text('${tag.name} (${tag.scope.toString()})')
+                ).toList(),
+              ),
+              pw.Header(
+                level: 1,
+                child: pw.Text('Tracks'),
+              ),
+              ...set.tracks.map((track) =>
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(track.trackId),
+                      pw.Text('Notes: ${track.notes}'),
+                      pw.Text('Tags: ${track.tags.map((t) => t.name).join(", ")}'),
+                    ],
+                  ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    final file = File('magic_set_${set.id}.pdf');
+    await file.writeAsBytes(await pdf.save());
+    return file;
+  }
+
+  static Future<String> exportAsJSON(MagicSet set) async {
+    return jsonEncode(set.toJson());
+  }
+
+  static Future<File> exportAsCSV(MagicSet set) async {
+    List<List<dynamic>> rows = [];
+
+    // Header
+    rows.add(['Track ID', 'Notes', 'Tags', 'Custom Fields']);
+
+    // Data
+    for (var track in set.tracks) {
+      rows.add([
+        track.trackId,
+        track.notes,
+        track.tags.map((t) => t.name).join(';'),
+        track.customFields.toString(),
+      ]);
+    }
+
+    String csv = const ListToCsvConverter().convert(rows);
+    final file = File('magic_set_${set.id}.csv');
+    await file.writeAsString(csv);
+    return file;
+  }
+
+  static Future<MagicSet> importFromJSON(String json) async {
+    try {
+      final data = jsonDecode(json);
+      return MagicSet.fromJson(data);
+    } catch (e) {
+      throw FormatException('Invalid magic set format: $e');
+    }
+  }
+}
