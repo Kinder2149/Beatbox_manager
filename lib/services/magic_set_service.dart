@@ -15,6 +15,7 @@ class MagicSetService {
   static const String _magicSetsCacheKey = 'magic_sets_cache';
   static const String _tagsCacheKey = 'tags_cache';
   static const String _templatesCacheKey = 'templates_cache';
+  static const _cacheValidityDuration = Duration(minutes: 30);
 
   MagicSetService(this._cacheService, this._spotifyService);
 
@@ -289,13 +290,45 @@ class MagicSetService {
   // Cache Operations
   Future<List<MagicSet>> getCachedSets() async {
     try {
-      final cached = await _cacheService.getCachedMagicSets();
-      return cached ?? [];
+      final cached = await _cacheService.get<List<dynamic>>(_magicSetsCacheKey);
+      if (cached != null) {
+        // Vérification de la validité du cache
+        final lastUpdate = await _cacheService.get<String>('${_magicSetsCacheKey}_lastUpdate');
+        if (lastUpdate != null) {
+          final lastUpdateTime = DateTime.parse(lastUpdate);
+          if (DateTime.now().difference(lastUpdateTime) < _cacheValidityDuration) {
+            return cached.map((json) => MagicSet.fromJson(json)).toList();
+          }
+        }
+      }
+      return await _fetchAndCacheSets();
     } catch (e) {
-      print('Erreur lors de la récupération des magic sets: $e');
+      print('Erreur de cache: $e');
       return [];
     }
   }
+  Future<List<MagicSet>> _fetchAndCacheSets() async {
+    final sets = await _spotifyService.spotify!.playlists
+        .me.all()
+        .then((playlists) => playlists
+        .where((p) => p.id != null)
+        .map((p) => MagicSet.create(
+      name: p.name ?? 'Sans nom',
+      playlistId: p.id!,
+    ))
+        .toList());
+
+    await _cacheService.set(_magicSetsCacheKey,
+        sets.map((s) => s.toJson()).toList()
+    );
+    await _cacheService.set(
+        '${_magicSetsCacheKey}_lastUpdate',
+        DateTime.now().toIso8601String()
+    );
+
+    return sets;
+  }
+
 
   Future<void> _cacheSets(List<MagicSet> sets) async {
     await _cacheService.set(_magicSetsCacheKey, sets.map((s) => s.toJson()).toList());

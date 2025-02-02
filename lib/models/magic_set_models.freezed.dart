@@ -562,7 +562,7 @@ MagicSet _$MagicSetFromJson(Map<String, dynamic> json) {
 mixin _$MagicSet {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
-  String get playlistId => throw _privateConstructorUsedError;
+  String? get playlistId => throw _privateConstructorUsedError;
   String get description => throw _privateConstructorUsedError;
   List<TrackInfo> get tracks => throw _privateConstructorUsedError;
   List<Tag> get tags => throw _privateConstructorUsedError;
@@ -571,6 +571,7 @@ mixin _$MagicSet {
   @DurationConverter()
   Duration get totalDuration => throw _privateConstructorUsedError;
   bool get isTemplate => throw _privateConstructorUsedError;
+  bool get isPlaylist => throw _privateConstructorUsedError;
   Map<String, dynamic> get metadata => throw _privateConstructorUsedError;
 
   /// Serializes this MagicSet to a JSON map.
@@ -591,7 +592,7 @@ abstract class $MagicSetCopyWith<$Res> {
   $Res call(
       {String id,
       String name,
-      String playlistId,
+      String? playlistId,
       String description,
       List<TrackInfo> tracks,
       List<Tag> tags,
@@ -599,6 +600,7 @@ abstract class $MagicSetCopyWith<$Res> {
       DateTime updatedAt,
       @DurationConverter() Duration totalDuration,
       bool isTemplate,
+      bool isPlaylist,
       Map<String, dynamic> metadata});
 }
 
@@ -619,7 +621,7 @@ class _$MagicSetCopyWithImpl<$Res, $Val extends MagicSet>
   $Res call({
     Object? id = null,
     Object? name = null,
-    Object? playlistId = null,
+    Object? playlistId = freezed,
     Object? description = null,
     Object? tracks = null,
     Object? tags = null,
@@ -627,6 +629,7 @@ class _$MagicSetCopyWithImpl<$Res, $Val extends MagicSet>
     Object? updatedAt = null,
     Object? totalDuration = null,
     Object? isTemplate = null,
+    Object? isPlaylist = null,
     Object? metadata = null,
   }) {
     return _then(_value.copyWith(
@@ -638,10 +641,10 @@ class _$MagicSetCopyWithImpl<$Res, $Val extends MagicSet>
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
               as String,
-      playlistId: null == playlistId
+      playlistId: freezed == playlistId
           ? _value.playlistId
           : playlistId // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       description: null == description
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
@@ -670,6 +673,10 @@ class _$MagicSetCopyWithImpl<$Res, $Val extends MagicSet>
           ? _value.isTemplate
           : isTemplate // ignore: cast_nullable_to_non_nullable
               as bool,
+      isPlaylist: null == isPlaylist
+          ? _value.isPlaylist
+          : isPlaylist // ignore: cast_nullable_to_non_nullable
+              as bool,
       metadata: null == metadata
           ? _value.metadata
           : metadata // ignore: cast_nullable_to_non_nullable
@@ -689,7 +696,7 @@ abstract class _$$MagicSetImplCopyWith<$Res>
   $Res call(
       {String id,
       String name,
-      String playlistId,
+      String? playlistId,
       String description,
       List<TrackInfo> tracks,
       List<Tag> tags,
@@ -697,6 +704,7 @@ abstract class _$$MagicSetImplCopyWith<$Res>
       DateTime updatedAt,
       @DurationConverter() Duration totalDuration,
       bool isTemplate,
+      bool isPlaylist,
       Map<String, dynamic> metadata});
 }
 
@@ -715,7 +723,7 @@ class __$$MagicSetImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? name = null,
-    Object? playlistId = null,
+    Object? playlistId = freezed,
     Object? description = null,
     Object? tracks = null,
     Object? tags = null,
@@ -723,6 +731,7 @@ class __$$MagicSetImplCopyWithImpl<$Res>
     Object? updatedAt = null,
     Object? totalDuration = null,
     Object? isTemplate = null,
+    Object? isPlaylist = null,
     Object? metadata = null,
   }) {
     return _then(_$MagicSetImpl(
@@ -734,10 +743,10 @@ class __$$MagicSetImplCopyWithImpl<$Res>
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
               as String,
-      playlistId: null == playlistId
+      playlistId: freezed == playlistId
           ? _value.playlistId
           : playlistId // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       description: null == description
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
@@ -766,6 +775,10 @@ class __$$MagicSetImplCopyWithImpl<$Res>
           ? _value.isTemplate
           : isTemplate // ignore: cast_nullable_to_non_nullable
               as bool,
+      isPlaylist: null == isPlaylist
+          ? _value.isPlaylist
+          : isPlaylist // ignore: cast_nullable_to_non_nullable
+              as bool,
       metadata: null == metadata
           ? _value._metadata
           : metadata // ignore: cast_nullable_to_non_nullable
@@ -781,7 +794,7 @@ class _$MagicSetImpl extends _MagicSet {
   const _$MagicSetImpl(
       {required this.id,
       required this.name,
-      required this.playlistId,
+      this.playlistId,
       this.description = '',
       final List<TrackInfo> tracks = const [],
       final List<Tag> tags = const [],
@@ -789,6 +802,7 @@ class _$MagicSetImpl extends _MagicSet {
       required this.updatedAt,
       @DurationConverter() required this.totalDuration,
       this.isTemplate = false,
+      this.isPlaylist = false,
       final Map<String, dynamic> metadata = const {}})
       : _tracks = tracks,
         _tags = tags,
@@ -803,7 +817,7 @@ class _$MagicSetImpl extends _MagicSet {
   @override
   final String name;
   @override
-  final String playlistId;
+  final String? playlistId;
   @override
   @JsonKey()
   final String description;
@@ -835,6 +849,9 @@ class _$MagicSetImpl extends _MagicSet {
   @override
   @JsonKey()
   final bool isTemplate;
+  @override
+  @JsonKey()
+  final bool isPlaylist;
   final Map<String, dynamic> _metadata;
   @override
   @JsonKey()
@@ -846,7 +863,7 @@ class _$MagicSetImpl extends _MagicSet {
 
   @override
   String toString() {
-    return 'MagicSet(id: $id, name: $name, playlistId: $playlistId, description: $description, tracks: $tracks, tags: $tags, createdAt: $createdAt, updatedAt: $updatedAt, totalDuration: $totalDuration, isTemplate: $isTemplate, metadata: $metadata)';
+    return 'MagicSet(id: $id, name: $name, playlistId: $playlistId, description: $description, tracks: $tracks, tags: $tags, createdAt: $createdAt, updatedAt: $updatedAt, totalDuration: $totalDuration, isTemplate: $isTemplate, isPlaylist: $isPlaylist, metadata: $metadata)';
   }
 
   @override
@@ -870,6 +887,8 @@ class _$MagicSetImpl extends _MagicSet {
                 other.totalDuration == totalDuration) &&
             (identical(other.isTemplate, isTemplate) ||
                 other.isTemplate == isTemplate) &&
+            (identical(other.isPlaylist, isPlaylist) ||
+                other.isPlaylist == isPlaylist) &&
             const DeepCollectionEquality().equals(other._metadata, _metadata));
   }
 
@@ -887,6 +906,7 @@ class _$MagicSetImpl extends _MagicSet {
       updatedAt,
       totalDuration,
       isTemplate,
+      isPlaylist,
       const DeepCollectionEquality().hash(_metadata));
 
   /// Create a copy of MagicSet
@@ -909,7 +929,7 @@ abstract class _MagicSet extends MagicSet {
   const factory _MagicSet(
       {required final String id,
       required final String name,
-      required final String playlistId,
+      final String? playlistId,
       final String description,
       final List<TrackInfo> tracks,
       final List<Tag> tags,
@@ -917,6 +937,7 @@ abstract class _MagicSet extends MagicSet {
       required final DateTime updatedAt,
       @DurationConverter() required final Duration totalDuration,
       final bool isTemplate,
+      final bool isPlaylist,
       final Map<String, dynamic> metadata}) = _$MagicSetImpl;
   const _MagicSet._() : super._();
 
@@ -928,7 +949,7 @@ abstract class _MagicSet extends MagicSet {
   @override
   String get name;
   @override
-  String get playlistId;
+  String? get playlistId;
   @override
   String get description;
   @override
@@ -944,6 +965,8 @@ abstract class _MagicSet extends MagicSet {
   Duration get totalDuration;
   @override
   bool get isTemplate;
+  @override
+  bool get isPlaylist;
   @override
   Map<String, dynamic> get metadata;
 

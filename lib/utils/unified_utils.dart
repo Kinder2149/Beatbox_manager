@@ -451,10 +451,10 @@ class ValidationException implements Exception {
 
 class Validators {
   static void validateMagicSet(MagicSet set) {
-    if (set.name.isEmpty) {
+    if (set.name.trim().isEmpty) {
       throw ValidationException('Le nom du set ne peut pas être vide', field: 'name');
     }
-    if (set.playlistId.isEmpty) {
+    if (set.playlistId == null || set.playlistId!.trim().isEmpty) {
       throw ValidationException('L\'ID de playlist est requis', field: 'playlistId');
     }
 

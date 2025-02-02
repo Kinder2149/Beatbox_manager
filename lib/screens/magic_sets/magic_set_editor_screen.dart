@@ -303,7 +303,6 @@ class MagicSetEditorScreenState extends ConsumerState<MagicSetEditorScreen>
     }
   }
 
-  // Modification du _saveSet
   Future<void> _saveSet(BuildContext context) async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -311,43 +310,65 @@ class MagicSetEditorScreenState extends ConsumerState<MagicSetEditorScreen>
 
     try {
       final newSet = widget.set?.copyWith(
-        name: _nameController.text,
-        description: _descriptionController.text,
+        name: _nameController.text.trim(),
+        description: _descriptionController.text.trim(),
         tags: _selectedTags,
         isTemplate: _isTemplate,
         updatedAt: DateTime.now(),
       ) ?? MagicSet.create(
-        name: _nameController.text,
-        playlistId: _selectedPlaylistId!,
-        description: _descriptionController.text,
+        name: _nameController.text.trim(),
+        playlistId: _selectedPlaylistId,  // Peut être null pour les templates
+        description: _descriptionController.text.trim(),
         tags: _selectedTags,
         isTemplate: _isTemplate,
       );
 
+      // Validation avant sauvegarde
+      newSet.validate();
+
       if (widget.set != null) {
         await ref.read(magicSetsProvider.notifier).updateSet(newSet);
       } else {
+        if (newSet.playlistId == null) {
+          throw ValidationException('L\'ID de playlist est requis');
+        }
         await ref.read(magicSetsProvider.notifier).createSet(
           newSet.name,
-          newSet.playlistId,
+          newSet.playlistId!,  // Force non-null car vérifié au-dessus
           description: newSet.description,
         );
       }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Magic Set sauvegardé avec succès !')),
+          const SnackBar(
+            content: Text('Magic Set sauvegardé avec succès'),
+            duration: Duration(seconds: 2),
+          ),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
+          SnackBar(
+            content: Text(
+                e is ValidationException
+                    ? e.message
+                    : 'Erreur lors de la sauvegarde: $e'
+            ),
+            backgroundColor: Colors.red,
+          ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
       }
     }
   }
+
+
   @override
   void dispose() {
     _nameController.dispose();

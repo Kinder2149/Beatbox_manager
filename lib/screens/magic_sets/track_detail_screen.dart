@@ -9,6 +9,7 @@ import 'package:beatbox_manager/screens/magic_sets/tag_manager_screen.dart';
 import 'package:flutter/foundation.dart' show listEquals;
 import '../../utils/unified_utils.dart';
 
+
 class TrackDetailScreen extends ConsumerStatefulWidget {
   final String setId;
   final TrackInfo track;
@@ -26,19 +27,20 @@ class TrackDetailScreen extends ConsumerStatefulWidget {
 class TrackDetailScreenState extends ConsumerState<TrackDetailScreen>
     with UnsavedChangesMixin {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _notesController;
+  final TextEditingController _notesController = TextEditingController();
   List<Tag> _selectedTags = [];
   bool _isLoading = false;
   Map<String, dynamic> _originalValues = {};
+  Map<String, dynamic> _customMetadata = {};
+
 
   @override
   void initState() {
     super.initState();
-    _originalValues = {
-      'notes': widget.track.notes,
-      'tags': List<Tag>.from(widget.track.tags),
-      'metadata': Map<String, dynamic>.from(widget.track.customMetadata),
-    };
+    // Initialiser le texte du contrôleur avec les notes existantes
+    _notesController.text = widget.track.notes;
+    _selectedTags = List.from(widget.track.tags);
+    _customMetadata = Map.from(widget.track.customMetadata);
 
     // Ajoutez le listener pour détecter les changements
     _notesController.addListener(() {
@@ -54,15 +56,46 @@ class TrackDetailScreenState extends ConsumerState<TrackDetailScreen>
 
   @override
   void dispose() {
+    _saveChanges(); // Sauvegarde automatique à la fermeture
     _notesController.dispose();
     super.dispose();
   }
 
+  Future<void> _saveChanges() async {
+    // Création du nouveau TrackInfo avec les modifications
+    final updatedTrack = widget.track.copyWith(
+      notes: _notesController.text.trim(),
+      tags: _selectedTags,
+      customMetadata: _customMetadata,
+      // Ajoutez d'autres champs si nécessaire
+    );
+
+    try {
+      // Mise à jour du track dans le MagicSet
+      final set = ref.read(selectedSetProvider);
+      if (set == null) return;
+
+      final updatedSet = set.updateTrack(updatedTrack);
+
+      // Sauvegarde via le provider
+      await ref.read(magicSetsProvider.notifier).updateSet(updatedSet);
+    } catch (e) {
+      // On ne montre pas de message d'erreur ici car l'écran est en train de se fermer
+      print('Erreur lors de la sauvegarde automatique: $e');
+    }
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-        onWillPop: () => onWillPop(),
-    child: Scaffold(
+        onWillPop: () async {
+          // Sauvegarde avant de quitter
+          await _saveChanges();
+          return true;
+        },
+        child: Scaffold(
     appBar: AppBar(
     title: const Text('Détails du titre'),
     actions: [

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:spotify/spotify.dart';
+import 'package:beatbox_manager/utils/unified_utils.dart';
 
 part 'magic_set_models.freezed.dart';
 part 'magic_set_models.g.dart';
@@ -37,7 +38,7 @@ class DurationConverter implements JsonConverter<Duration, int> {
 
 @freezed
 class Tag with _$Tag {
-  const Tag._(); // Constructeur privé nécessaire
+  const Tag._();
 
   @JsonSerializable(explicitToJson: true)
   const factory Tag({
@@ -52,7 +53,7 @@ class Tag with _$Tag {
 
 @freezed
 class TrackInfo with _$TrackInfo {
-  const TrackInfo._(); // Constructeur privé nécessaire
+  const TrackInfo._();
 
   @JsonSerializable(explicitToJson: true)
   const factory TrackInfo({
@@ -68,7 +69,6 @@ class TrackInfo with _$TrackInfo {
 
   factory TrackInfo.fromJson(Map<String, dynamic> json) => _$TrackInfoFromJson(json);
 
-  // Methods
   TrackInfo updateMetadata(Map<String, dynamic> newMetadata) {
     return copyWith(
       customMetadata: {
@@ -90,13 +90,13 @@ class TrackInfo with _$TrackInfo {
 
 @freezed
 class MagicSet with _$MagicSet {
-  const MagicSet._(); // Constructeur privé nécessaire
+  const MagicSet._();
 
   @JsonSerializable(explicitToJson: true)
   const factory MagicSet({
     required String id,
     required String name,
-    required String playlistId,
+    String? playlistId,
     @Default('') String description,
     @Default([]) List<TrackInfo> tracks,
     @Default([]) List<Tag> tags,
@@ -104,49 +104,114 @@ class MagicSet with _$MagicSet {
     required DateTime updatedAt,
     @DurationConverter() required Duration totalDuration,
     @Default(false) bool isTemplate,
+    @Default(false) bool isPlaylist,
     @Default({}) Map<String, dynamic> metadata,
   }) = _MagicSet;
 
   factory MagicSet.fromJson(Map<String, dynamic> json) => _$MagicSetFromJson(json);
 
-  // Factory constructors
-  factory MagicSet.create({
+  // Ajoutez cette factory
+  factory MagicSet.createTemplate({
     required String name,
-    required String playlistId,
     String description = '',
     List<Tag> tags = const [],
+    Map<String, dynamic> metadata = const {},
     bool isTemplate = false,
+    bool isPlaylist = false,
   }) {
     return MagicSet(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: name,
       description: description,
+      tags: tags,
+      tracks: [],
+      isTemplate: true,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      totalDuration: Duration.zero,
+      metadata: metadata,
+    );
+  }
+
+  // Ajoutez cette méthode
+  MagicSet createFromTemplate(String playlistId) {
+    if (!isTemplate) {
+      throw ValidationException('Seuls les templates peuvent être utilisés comme base');
+    }
+    return MagicSet(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: name,
       playlistId: playlistId,
+      description: description,
+      tags: List.from(tags),
+      tracks: [],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      totalDuration: Duration.zero,
+      isTemplate: false,
+      metadata: Map<String, dynamic>.from(metadata),
+    );
+  }
+
+
+  factory MagicSet.create({
+    required String name,
+    String? playlistId,
+    String description = '',
+    List<Tag> tags = const [],
+    bool isTemplate = false,
+    bool isPlaylist = false, // Ajoutez ce paramètre
+  }) {
+    return MagicSet(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: name,
+      playlistId: playlistId,
+      description: description,
       tags: tags,
       tracks: [],
       isTemplate: isTemplate,
+      isPlaylist: isPlaylist, // Définissez la valeur
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
       totalDuration: Duration.zero,
     );
   }
 
+
+  void validate() {
+    if (name.trim().isEmpty) {
+      throw ValidationException('Le nom du Magic Set ne peut pas être vide');
+    }
+    if (!isTemplate && playlistId == null) {
+      throw ValidationException('L\'ID de playlist est requis pour les sets non-templates');
+    }
+    // Validation des tracks
+    for (var track in tracks) {
+      if (track.trackId.trim().isEmpty) {
+        throw ValidationException('Chaque piste doit avoir un ID valide');
+      }
+    }
+  }
+
   factory MagicSet.fromTemplate(MagicSet template, String playlistId) {
+    if (!template.isTemplate) {
+      throw ValidationException('Seuls les templates peuvent être utilisés comme base');
+    }
     return MagicSet(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: '${template.name} (Copy)',
+      name: template.name,
       playlistId: playlistId,
       description: template.description,
-      tags: template.tags,
+      tags: List.from(template.tags),
+      tracks: [],  // Les tracks ne sont pas copiées du template
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
-      totalDuration: template.totalDuration,
+      totalDuration: Duration.zero,
       isTemplate: false,
       metadata: Map<String, dynamic>.from(template.metadata),
     );
   }
 
-  // Getters
   Duration get computeTotalDuration {
     return tracks.fold(
       Duration.zero,
@@ -154,7 +219,6 @@ class MagicSet with _$MagicSet {
     );
   }
 
-  // Methods
   MagicSet copyWithUpdatedDuration() {
     return copyWith(
       totalDuration: computeTotalDuration,

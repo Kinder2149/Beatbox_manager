@@ -73,7 +73,7 @@ _$MagicSetImpl _$$MagicSetImplFromJson(Map<String, dynamic> json) =>
     _$MagicSetImpl(
       id: json['id'] as String,
       name: json['name'] as String,
-      playlistId: json['playlistId'] as String,
+      playlistId: json['playlistId'] as String?,
       description: json['description'] as String? ?? '',
       tracks: (json['tracks'] as List<dynamic>?)
               ?.map((e) => TrackInfo.fromJson(e as Map<String, dynamic>))
@@ -88,6 +88,7 @@ _$MagicSetImpl _$$MagicSetImplFromJson(Map<String, dynamic> json) =>
       totalDuration: const DurationConverter()
           .fromJson((json['totalDuration'] as num).toInt()),
       isTemplate: json['isTemplate'] as bool? ?? false,
+      isPlaylist: json['isPlaylist'] as bool? ?? false,
       metadata: json['metadata'] as Map<String, dynamic>? ?? const {},
     );
 
@@ -103,5 +104,6 @@ Map<String, dynamic> _$$MagicSetImplToJson(_$MagicSetImpl instance) =>
       'updatedAt': instance.updatedAt.toIso8601String(),
       'totalDuration': const DurationConverter().toJson(instance.totalDuration),
       'isTemplate': instance.isTemplate,
+      'isPlaylist': instance.isPlaylist,
       'metadata': instance.metadata,
     };

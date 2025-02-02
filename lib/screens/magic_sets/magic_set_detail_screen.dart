@@ -103,7 +103,7 @@ class MagicSetDetailScreenState extends ConsumerState<MagicSetDetailScreen> {
       delegate: SliverChildListDelegate([
         _buildStats(context, set),
         _buildTagsList(context, set),
-        _buildTracksList(context, set),
+        _buildTracksList(set.tracks), // Modifié ici : on passe juste les tracks
       ]),
     );
   }
@@ -188,29 +188,104 @@ class MagicSetDetailScreenState extends ConsumerState<MagicSetDetailScreen> {
     );
   }
 
-  Widget _buildTracksList(BuildContext context, MagicSet set) {
-    if (set.tracks.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32.0),
-          child: Text(
-            'Aucun titre dans ce Magic Set.\nAppuyez sur + pour en ajouter !',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
+  // Dans lib/screens/magic_sets/magic_set_detail_screen.dart
 
+  Widget _buildTracksList(List<TrackInfo> tracks) {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: set.tracks.length,
+      itemCount: tracks.length,
       itemBuilder: (context, index) {
-        final track = set.tracks[index];
-        return _TrackListItem(
-          track: track,
-          onTap: () => _showTrackDetails(context, set, track),
-          onTagTap: (tag) => _showTagDetails(context, tag),
+        final track = tracks[index];
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          child: ExpansionTile(
+            title: Text(track.trackId), // Ou le nom de la piste si disponible
+            subtitle: Row(
+              children: [
+                Icon(Icons.local_offer, size: 16, color: Colors.grey[600]),
+                Text(' ${track.tags.length} tags'),
+                const SizedBox(width: 16),
+                Icon(Icons.note, size: 16, color: Colors.grey[600]),
+                Text(track.notes.isNotEmpty ? ' Note ajoutée' : ' Pas de note'),
+              ],
+            ),
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Tags
+                    if (track.tags.isNotEmpty) ...[
+                      const Text('Tags:',
+                          style: TextStyle(fontWeight: FontWeight.bold)
+                      ),
+                      Wrap(
+                        spacing: 8,
+                        children: track.tags.map((tag) => Chip(
+                          label: Text(tag.name),
+                          backgroundColor: tag.color.withOpacity(0.2),
+                          labelStyle: TextStyle(color: tag.color),
+                        )).toList(),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+
+                    // Notes
+                    if (track.notes.isNotEmpty) ...[
+                      const Text('Notes:',
+                          style: TextStyle(fontWeight: FontWeight.bold)
+                      ),
+                      Text(track.notes),
+                      const SizedBox(height: 8),
+                    ],
+
+                    // Métadonnées
+                    if (track.customMetadata.isNotEmpty) ...[
+                      const Text('Métadonnées:',
+                          style: TextStyle(fontWeight: FontWeight.bold)
+                      ),
+                      ...track.customMetadata.entries.map((entry) =>
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8.0),
+                            child: Row(
+                              children: [
+                                Text('${entry.key}: ',
+                                    style: const TextStyle(fontWeight: FontWeight.w500)
+                                ),
+                                Text(entry.value.toString()),
+                              ],
+                            ),
+                          ),
+                      ),
+                    ],
+
+                    // Durée et autres informations
+                    if (track.duration != Duration.zero ||
+                        track.bpm != null ||
+                        track.key != null) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          if (track.duration != Duration.zero)
+                            Text('Durée: ${track.duration.inMinutes}:${(track.duration.inSeconds % 60).toString().padLeft(2, '0')}'),
+                          if (track.bpm != null) ...[
+                            const SizedBox(width: 16),
+                            Text('BPM: ${track.bpm}'),
+                          ],
+                          if (track.key != null) ...[
+                            const SizedBox(width: 16),
+                            Text('Clé: ${track.key}'),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
