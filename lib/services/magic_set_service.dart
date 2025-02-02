@@ -1,16 +1,20 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/magic_set_models.dart';
 import 'cache/unified_cache_service.dart';
 import 'spotify/unified_spotify_service.dart';
-import 'dart:async';
-import 'dart:convert';
+import 'package:collection/collection.dart';
 
 class MagicSetService {
   final UnifiedCacheService _cacheService;
   final UnifiedSpotifyService _spotifyService;
   static const String _magicSetsCacheKey = 'magic_sets_cache';
   static const String _tagsCacheKey = 'tags_cache';
+  static const String _templatesCacheKey = 'templates_cache';
 
   MagicSetService(this._cacheService, this._spotifyService);
 
@@ -84,7 +88,134 @@ class MagicSetService {
     }
   }
 
+  Future<void> saveAsTemplate(String setId) async {
+    final set = await getSetById(setId);
+    if (set == null) throw Exception('Set not found');
 
+    final templateSet = set.copyWith(
+      isTemplate: true,
+      updatedAt: DateTime.now(),
+    );
+
+    await saveMagicSet(templateSet);
+  }
+  Future<String> exportSet(String setId, ExportFormat format) async {
+    final set = await getSetById(setId);
+    if (set == null) throw Exception('Set not found');
+
+    switch (format) {
+      case ExportFormat.JSON:
+        return _exportToJson(set);
+      case ExportFormat.PDF:
+        return _exportToPdf(set);
+      case ExportFormat.CSV:
+        return _exportToCsv(set);
+    }
+  }
+
+  String _exportToJson(MagicSet set) {
+    return jsonEncode(set.toJson());
+  }
+
+  Future<String> _exportToPdf(MagicSet set) async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        build: (context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Header(
+                level: 0,
+                child: pw.Text(set.name),
+              ),
+              pw.Paragraph(text: set.description),
+              pw.Header(
+                level: 1,
+                child: pw.Text('Tags'),
+              ),
+              pw.Column(
+                children: set.tags.map((tag) =>
+                    pw.Text('${tag.name} (${tag.scope})')
+                ).toList(),
+              ),
+              pw.Header(
+                level: 1,
+                child: pw.Text('Tracks'),
+              ),
+              ...set.tracks.map((track) =>
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(track.trackId),
+                      pw.Text('Notes: ${track.notes}'),
+                      pw.Text('Tags: ${track.tags.map((t) => t.name).join(", ")}'),
+                      if (track.customMetadata.isNotEmpty)
+                        pw.Text('Metadata: ${jsonEncode(track.customMetadata)}'),
+                    ],
+                  ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    return base64Encode(await pdf.save());
+  }
+
+  String _exportToCsv(MagicSet set) {
+    List<List<dynamic>> rows = [
+      ['Track ID', 'Notes', 'Tags', 'Duration', 'Key', 'BPM', 'Custom Metadata']
+    ];
+
+    for (var track in set.tracks) {
+      rows.add([
+        track.trackId,
+        track.notes,
+        track.tags.map((t) => t.name).join(';'),
+        track.duration.toString(),
+        track.key ?? '',
+        track.bpm ?? '',
+        jsonEncode(track.customMetadata),
+      ]);
+    }
+
+    return const ListToCsvConverter().convert(rows);
+  }
+  Future<List<MagicSet>> getTemplates() async {
+    final sets = await getCachedSets();
+    return sets.where((set) => set.isTemplate).toList();
+  }
+
+  // Ajouter ces méthodes pour l'export/import
+  Future<String> exportSetToJson(String setId) async {
+    final sets = await getCachedSets();
+    final set = sets.firstWhere((s) => s.id == setId);
+    return jsonEncode(set.toJson());
+  }
+
+  Future<String> exportSetToPdf(String setId) async {
+    final set = await getSetById(setId);
+    if (set == null) throw Exception('Set not found');
+
+    final pdf = pw.Document();
+    // ... Logique de génération PDF ...
+    final bytes = await pdf.save(); // Ceci retourne un Uint8List
+    return base64Encode(bytes); // Convertit en String base64
+  }
+
+  Future<void> importSet(String data) async {
+    try {
+      // Essayer d'abord comme JSON
+      final jsonData = jsonDecode(data);
+      final set = MagicSet.fromJson(jsonData);
+      await saveMagicSet(set);
+    } catch (e) {
+      throw Exception('Format invalide: $e');
+    }
+  }
   // Tag Operations
   Future<Tag> createTag(String name, Color color, TagScope scope) async {
     final tag = Tag(
@@ -137,24 +268,23 @@ class MagicSetService {
 
   // Template Operations
   Future<MagicSet> createFromTemplate(String templateId, String playlistId) async {
-    final sets = await getCachedSets();
-    final template = sets.firstWhere((s) => s.id == templateId && s.isTemplate);
+    final template = await getSetById(templateId);
+    if (template == null) throw Exception('Template not found');
+
     final newSet = MagicSet.fromTemplate(template, playlistId);
-
-    sets.add(newSet);
-    await _cacheSets(sets);
-
+    await saveMagicSet(newSet);
     return newSet;
   }
 
-  Future<void> saveAsTemplate(String setId) async {
+  // Utilitaire
+  Future<MagicSet?> getSetById(String id) async {
     final sets = await getCachedSets();
-    final index = sets.indexWhere((s) => s.id == setId);
-    if (index != -1) {
-      sets[index] = sets[index].copyWith(isTemplate: true);
-      await _cacheSets(sets);
-    }
+    return sets.firstWhereOrNull((s) => s.id == id);
   }
+
+
+
+
 
   // Cache Operations
   Future<List<MagicSet>> getCachedSets() async {

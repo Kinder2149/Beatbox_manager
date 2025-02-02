@@ -1,21 +1,13 @@
-// lib/providers/unified_providers.dart
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotify/spotify.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/spotify/unified_spotify_service.dart';
 import '../services/cache/unified_cache_service.dart';
-import 'dart:collection';
-import 'package:beatbox_manager/services/navigation_service.dart';
-import 'package:beatbox_manager/providers/cache_provider.dart';
-import 'cache_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:beatbox_manager/screens/hello_screen.dart';
+import '../services/navigation_service.dart';
 import '../models/magic_set_models.dart';
-import '../services/magic_set_service.dart';
+import '../models/magic_set_models.dart';
 
-
-
-// État de chargement global
+// Classes d'état
 class LoadingState {
   final int current;
   final int total;
@@ -27,6 +19,7 @@ class LoadingState {
     required this.message,
   });
 }
+
 class PaginatedState<T> {
   final List<T> items;
   final bool isLoading;
@@ -42,7 +35,6 @@ class PaginatedState<T> {
     this.lastUpdate,
   });
 
-  // Ajout de méthodes utilitaires
   PaginatedState<T> copyWith({
     List<T>? items,
     bool? isLoading,
@@ -62,6 +54,95 @@ class PaginatedState<T> {
   bool get isEmpty => items.isEmpty;
   int get itemCount => items.length;
 }
+
+// Providers de base
+final loadingStateProvider = StateNotifierProvider<LoadingStateNotifier, LoadingState?>((ref) {
+  return LoadingStateNotifier();
+});
+
+final cacheServiceProvider = FutureProvider<UnifiedCacheService>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  final config = CacheConfig(
+    validityDuration: const Duration(minutes: 30),
+    maxMemoryItems: 100,
+    persistToStorage: true,
+  );
+  return UnifiedCacheService(prefs, config: config);
+});
+final tagsProvider = StateNotifierProvider<TagsNotifier, AsyncValue<List<Tag>>>((ref) {
+  final cacheServiceAsync = ref.watch(cacheServiceProvider);
+
+  return cacheServiceAsync.when(
+    data: (cacheService) => TagsNotifier(cacheService),
+    loading: () => TagsNotifier(UnifiedCacheService(null)),
+    error: (_, __) => TagsNotifier(UnifiedCacheService(null)),
+  );
+});
+
+final spotifyServiceProvider = Provider<UnifiedSpotifyService>((ref) {
+  final cacheServiceAsync = ref.watch(cacheServiceProvider);
+
+  return cacheServiceAsync.when(
+    data: (cacheService) => UnifiedSpotifyService(cacheService),
+    loading: () => UnifiedSpotifyService(UnifiedCacheService(null)),
+    error: (_, __) => UnifiedSpotifyService(UnifiedCacheService(null)),
+  );
+});
+final spotifyTrackProvider = FutureProvider.family<Track, String>((ref, trackId) async {
+  final spotifyService = ref.watch(spotifyServiceProvider);
+  return await spotifyService.getTrack(trackId);
+});
+
+// Providers d'authentification et navigation
+final navigationServiceProvider = Provider<NavigationService>((ref) => NavigationService());
+
+final authStateProvider = StateNotifierProvider<AuthNotifier, AsyncValue<UnifiedSpotifyService>>((ref) {
+  return AuthNotifier(ref);
+});
+
+// Providers de données
+final playlistsProvider = StateNotifierProvider<PlaylistNotifier, PaginatedState<PlaylistSimple>>((ref) {
+  final spotifyService = ref.watch(spotifyServiceProvider);
+  final cacheServiceAsync = ref.watch(cacheServiceProvider);
+
+  return cacheServiceAsync.when(
+    data: (cacheService) => PlaylistNotifier(
+      spotifyService: spotifyService,
+      cacheService: cacheService,
+    ),
+    loading: () => throw Exception('Cache service not initialized'),
+    error: (error, _) => throw Exception('Failed to initialize cache service: $error'),
+  );
+});
+
+final likedTracksProvider = StateNotifierProvider<LikedTracksNotifier, PaginatedState<TrackSaved>>((ref) {
+  final spotifyService = ref.watch(spotifyServiceProvider);
+  final cacheServiceAsync = ref.watch(cacheServiceProvider);
+
+  return cacheServiceAsync.when(
+    data: (cacheService) => LikedTracksNotifier(
+      spotifyService: spotifyService,
+      cacheService: cacheService,
+    ),
+    loading: () => throw Exception('Cache service not initialized'),
+    error: (error, _) => throw Exception('Failed to initialize cache service: $error'),
+  );
+});
+
+// Notifiers
+class LoadingStateNotifier extends StateNotifier<LoadingState?> {
+  LoadingStateNotifier() : super(null);
+
+  void updateProgress(int current, int total, String message) {
+    state = LoadingState(
+      current: current,
+      total: total,
+      message: message,
+    );
+  }
+
+  void reset() => state = null;
+}
 abstract class PaginatedDataNotifier<T> extends StateNotifier<PaginatedState<T>> {
   final UnifiedSpotifyService spotifyService;
   final UnifiedCacheService cacheService;
@@ -73,7 +154,6 @@ abstract class PaginatedDataNotifier<T> extends StateNotifier<PaginatedState<T>>
     this.pageSize = 50,
   }) : super(PaginatedState<T>(items: []));
 
-  // Méthodes abstraites à implémenter par les classes enfants
   Future<List<T>> fetchPage(int offset, int limit);
   Future<List<T>?> getCachedData();
   Future<void> cacheData(List<T> data);
@@ -99,25 +179,20 @@ abstract class PaginatedDataNotifier<T> extends StateNotifier<PaginatedState<T>>
       await loadMore(refresh: true);
     } catch (e) {
       state = state.copyWith(
-        error: 'Initialisation error: $e',
+        error: 'Erreur d\'initialisation: $e',
         isLoading: false,
       );
-      rethrow;
     }
   }
 
   Future<void> loadMore({bool refresh = false}) async {
     if (state.isLoading || (!state.hasMore && !refresh)) return;
 
-    state = state.copyWith(
-      isLoading: true,
-      error: null,
-    );
+    state = state.copyWith(isLoading: true, error: null);
 
     try {
       final offset = refresh ? 0 : state.items.length;
       final newItems = await fetchPage(offset, pageSize);
-
       final updatedItems = refresh ? newItems : [...state.items, ...newItems];
 
       await cacheData(updatedItems);
@@ -130,15 +205,10 @@ abstract class PaginatedDataNotifier<T> extends StateNotifier<PaginatedState<T>>
       );
     } catch (e) {
       state = state.copyWith(
-        error: 'Load more error: $e',
+        error: 'Erreur de chargement: $e',
         isLoading: false,
       );
-      rethrow;
     }
-  }
-
-  Future<void> refresh() async {
-    await loadMore(refresh: true);
   }
 
   Future<void> _refreshInBackground() async {
@@ -152,27 +222,13 @@ abstract class PaginatedDataNotifier<T> extends StateNotifier<PaginatedState<T>>
         lastUpdate: DateTime.now(),
       );
     } catch (e) {
-      print('Background refresh error: $e');
+      print('Erreur de rafraîchissement en arrière-plan: $e');
     }
   }
 }
 
 
-class LoadingStateNotifier extends StateNotifier<LoadingState?> {
-  LoadingStateNotifier() : super(null);
 
-  void updateProgress(int current, int total, String message) {
-    state = LoadingState(
-      current: current,
-      total: total,
-      message: message,
-    );
-  }
-
-  void reset() {
-    state = null;
-  }
-}
 
 class LikedTracksNotifier extends PaginatedDataNotifier<TrackSaved> {
   LikedTracksNotifier({
@@ -202,7 +258,6 @@ class LikedTracksNotifier extends PaginatedDataNotifier<TrackSaved> {
   Future<void> cacheData(List<TrackSaved> data) async {
     await cacheService.cacheLikedTracks(data);
   }
-
   Future<void> refresh({bool forceRefresh = false}) async {
     state = state.copyWith(isLoading: true);
     try {
@@ -221,59 +276,6 @@ class LikedTracksNotifier extends PaginatedDataNotifier<TrackSaved> {
     }
   }
 }
-
-
-
-// Providers de base
-final loadingStateProvider = StateNotifierProvider<LoadingStateNotifier, LoadingState?>((ref) {
-  return LoadingStateNotifier();
-});
-
-final cacheServiceProvider = FutureProvider<UnifiedCacheService>((ref) async {
-  final prefs = await SharedPreferences.getInstance();
-  final config = CacheConfig(
-    validityDuration: const Duration(minutes: 30),
-    maxMemoryItems: 100,
-    persistToStorage: true,
-  );
-  return UnifiedCacheService(prefs, config: config);
-});
-
-// Update the Spotify service provider
-// Modifier la création du SpotifyService pour gérer le cas sans cache
-final spotifyServiceProvider = Provider<UnifiedSpotifyService>((ref) {
-  final cacheServiceAsync = ref.watch(cacheServiceProvider);
-
-  return cacheServiceAsync.when(
-    data: (cacheService) => UnifiedSpotifyService(cacheService),
-    loading: () => UnifiedSpotifyService(UnifiedCacheService(null)), // Utiliser un cache vide
-    error: (error, _) => UnifiedSpotifyService(UnifiedCacheService(null)), // Utiliser un cache vide
-  );
-});
-
-// Modify providers that use .future
-final likedTracksProvider = StateNotifierProvider<LikedTracksNotifier, PaginatedState<TrackSaved>>((ref) {
-  final spotifyService = ref.watch(spotifyServiceProvider);
-  final cacheServiceAsync = ref.watch(cacheServiceProvider);
-
-  return cacheServiceAsync.when(
-    data: (cacheService) => LikedTracksNotifier(
-      spotifyService: spotifyService,
-      cacheService: cacheService,
-    ),
-    loading: () => throw Exception('Cache service not initialized'),
-    error: (error, stack) => throw Exception('Failed to initialize cache service: $error'),
-  );
-});
-
-// Provider d'authentification
-final authStateProvider = StateNotifierProvider<AuthNotifier, AsyncValue<UnifiedSpotifyService>>((ref) {
-  return AuthNotifier(ref);
-});
-final navigationServiceProvider = Provider<NavigationService>((ref) {
-  return NavigationService();
-});
-
 
 class AuthNotifier extends StateNotifier<AsyncValue<UnifiedSpotifyService>> {
   final Ref _ref;
@@ -294,69 +296,50 @@ class AuthNotifier extends StateNotifier<AsyncValue<UnifiedSpotifyService>> {
         state = const AsyncValue.error("Pas de session valide", StackTrace.empty);
       }
     } catch (e, stack) {
-      print('AuthNotifier: Erreur d\'initialisation - $e');
       state = AsyncValue.error(e, stack);
     }
   }
+
   Future<void> login() async {
     try {
-      print('AuthNotifier: Tentative de connexion');
       state = const AsyncValue.loading();
       final spotifyService = _ref.read(spotifyServiceProvider);
       await spotifyService.login();
       state = AsyncValue.data(spotifyService);
     } catch (e, stack) {
-      print('AuthNotifier: Erreur de connexion - $e');
       state = AsyncValue.error(e, stack);
     }
   }
 
-
   Future<void> handleAuthResponse(Uri uri) async {
     try {
-      print('AuthNotifier: Traitement de la réponse d\'authentification');
       final spotifyService = _ref.read(spotifyServiceProvider);
       await spotifyService.handleAuthResponse(uri);
 
-      // Vérifiez explicitement la connexion
       if (spotifyService.isConnected) {
         state = AsyncValue.data(spotifyService);
-        print('AuthNotifier: Connexion réussie, navigation vers Hello');
-        final navigationService = _ref.read(navigationServiceProvider);
-        navigationService.goToHello();
+        _ref.read(navigationServiceProvider).goToHello();
       } else {
         throw Exception('Échec de connexion après traitement du token');
       }
     } catch (e, stack) {
-      print('AuthNotifier: Erreur de traitement - $e');
       state = AsyncValue.error(e, stack);
-      final navigationService = _ref.read(navigationServiceProvider);
-      navigationService.goToHome();
+      _ref.read(navigationServiceProvider).goToHome();
     }
   }
 
-
   Future<void> logout() async {
     try {
-      print('AuthNotifier: Déconnexion');
       final spotifyService = state.valueOrNull;
       if (spotifyService != null) {
         await spotifyService.logout();
       }
-      state = const AsyncValue.loading();  // Utiliser loading au lieu de null
-
-      // Navigation sécurisée après déconnexion
-      final navigationService = _ref.read(navigationServiceProvider);
-      navigationService.goToHome();
+      state = const AsyncValue.loading();
+      _ref.read(navigationServiceProvider).goToHome();
     } catch (e, stack) {
-      print('AuthNotifier: Erreur de déconnexion - $e');
       state = AsyncValue.error(e, stack);
     }
   }
-    Future<void> retryConnection() async {
-      state = const AsyncValue.loading();
-      await initialize();
-    }
 }
 
 
@@ -417,7 +400,6 @@ class PlaylistNotifier extends PaginatedDataNotifier<PlaylistSimple> {
   Future<void> cacheData(List<PlaylistSimple> data) async {
     await cacheService.cachePlaylists(data);
   }
-
   Future<void> refresh({bool forceRefresh = false}) async {
     state = state.copyWith(isLoading: true);
     try {
@@ -438,20 +420,7 @@ class PlaylistNotifier extends PaginatedDataNotifier<PlaylistSimple> {
 }
 
 
-// Mettez à jour le provider
-final playlistsProvider = StateNotifierProvider<PlaylistNotifier, PaginatedState<PlaylistSimple>>((ref) {
-  final spotifyService = ref.watch(spotifyServiceProvider);
-  final cacheServiceAsync = ref.watch(cacheServiceProvider);
 
-  return cacheServiceAsync.when(
-    data: (cacheService) => PlaylistNotifier(
-      spotifyService: spotifyService,
-      cacheService: cacheService,
-    ),
-    loading: () => throw Exception('Cache service not initialized'),
-    error: (error, stack) => throw Exception('Failed to initialize cache service: $error'),
-  );
-});
 
 final combinedDataProvider = Provider<AsyncValue<Map<String, dynamic>>>((ref) {
   final account = ref.watch(userStateProvider);
@@ -619,19 +588,17 @@ class LikedTracksStateNotifier extends StateNotifier<AsyncValue<List<TrackSaved>
 
 
 
-
 class PlaylistTracksNotifier extends StateNotifier<AsyncValue<List<Track>>> {
   final UnifiedSpotifyService _service;
   final UnifiedCacheService _cache;
   final LoadingStateNotifier _loadingNotifier;
   final String playlistId;
 
+  static const int _pageSize = 20;
   bool _isLoading = false;
   bool _hasMore = true;
   int _currentOffset = 0;
-  static const int _pageSize = 20;
   List<Track>? _cachedTracks;
-
 
   PlaylistTracksNotifier(this._service, this._cache, this._loadingNotifier, this.playlistId)
       : super(const AsyncValue.loading()) {
@@ -643,13 +610,12 @@ class PlaylistTracksNotifier extends StateNotifier<AsyncValue<List<Track>>> {
     _isLoading = true;
 
     try {
-      // Vérifier le cache d'abord
       final cached = await _cache.getCachedPlaylistTracks(playlistId);
       if (cached != null) {
         _cachedTracks = cached;
         state = AsyncValue.data(cached);
         _currentOffset = cached.length;
-        _hasMore = false; // On a toutes les données
+        _hasMore = false;
         return;
       }
 
@@ -672,36 +638,21 @@ class PlaylistTracksNotifier extends StateNotifier<AsyncValue<List<Track>>> {
     _loadingNotifier.updateProgress(_currentOffset, -1, 'Chargement des titres...');
 
     try {
-      final playlistTracks = await _service.spotify!.playlists
+      final tracks = await _service.spotify!.playlists
           .getTracksByPlaylistId(playlistId)
           .getPage(_pageSize, _currentOffset);
 
-      final newTracks = playlistTracks.items
-          ?.map((item) {
-        if (item is Track) return item;
-        return Track()
-          ..id = item.id
-          ..name = item.name
-          ..artists = item.artists
-          ..album = item.album;
-      })
+      final newTracks = tracks.items
+          ?.whereType<Track>()
           .toList() ?? [];
 
       _hasMore = newTracks.length >= _pageSize;
 
-      if (state.valueOrNull == null) {
-        _cachedTracks = newTracks;
-        state = AsyncValue.data(newTracks);
-      } else {
-        final currentTracks = state.valueOrNull ?? [];
-        final updatedTracks = [...currentTracks, ...newTracks];
-        _cachedTracks = updatedTracks;
-        state = AsyncValue.data(updatedTracks);
-      }
-
+      final List<Track> updatedTracks = [...(state.valueOrNull ?? []), ...newTracks];
+      _cachedTracks = updatedTracks;
+      state = AsyncValue.data(updatedTracks);
       _currentOffset += newTracks.length;
 
-      // Mettre en cache seulement si nous avons toutes les pistes
       if (!_hasMore) {
         await _cache.cachePlaylistTracks(playlistId, _cachedTracks!);
       }
@@ -715,6 +666,7 @@ class PlaylistTracksNotifier extends StateNotifier<AsyncValue<List<Track>>> {
     }
   }
 
+
   Future<void> refresh() async {
     _currentOffset = 0;
     _hasMore = true;
@@ -726,5 +678,72 @@ class PlaylistTracksNotifier extends StateNotifier<AsyncValue<List<Track>>> {
   void dispose() {
     _cachedTracks = null;
     super.dispose();
+  }
+}
+class TagsNotifier extends StateNotifier<AsyncValue<List<Tag>>> {
+  final UnifiedCacheService _cacheService;
+  static const String _cacheKey = 'tags_cache';
+
+  TagsNotifier(this._cacheService) : super(const AsyncValue.loading()) {
+    _loadTags();
+  }
+
+  Future<void> _loadTags() async {
+    try {
+      final cached = await _cacheService.get<List<dynamic>>(_cacheKey);
+      final tags = cached?.map((json) => Tag.fromJson(json as Map<String, dynamic>)).toList() ?? [];
+      state = AsyncValue.data(tags);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  Future<void> addTag(Tag tag) async {
+    try {
+      state.whenData((tags) async {
+        final updatedTags = [...tags, tag];
+        state = AsyncValue.data(updatedTags);
+        await _saveTags(updatedTags);
+      });
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  Future<void> updateTag(Tag updatedTag) async {
+    try {
+      state.whenData((tags) async {
+        final updatedTags = tags.map((tag) =>
+        tag.id == updatedTag.id ? updatedTag : tag
+        ).toList();
+        state = AsyncValue.data(updatedTags);
+        await _saveTags(updatedTags);
+      });
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  Future<void> deleteTag(String tagId) async {
+    try {
+      state.whenData((tags) async {
+        final updatedTags = tags.where((tag) => tag.id != tagId).toList();
+        state = AsyncValue.data(updatedTags);
+        await _saveTags(updatedTags);
+      });
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  Future<void> _saveTags(List<Tag> tags) async {
+    try {
+      await _cacheService.set(
+        _cacheKey,
+        tags.map((tag) => tag.toJson()).toList(),
+      );
+    } catch (e) {
+      print('Erreur lors de la sauvegarde des tags: $e');
+    }
   }
 }

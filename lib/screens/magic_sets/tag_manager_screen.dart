@@ -6,6 +6,7 @@ import '../../models/magic_set_models.dart';
 import '../../providers/unified_providers.dart';
 import '../../theme/app_theme.dart';
 import 'package:beatbox_manager/providers/magic_set_providers.dart';
+import 'package:beatbox_manager/widgets/tag_details_dialog.dart';
 
 
 class TagManagerScreen extends ConsumerStatefulWidget {
@@ -25,6 +26,7 @@ class TagManagerScreenState extends ConsumerState<TagManagerScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   Color _selectedColor = Colors.blue;
+  TagScope _selectedScope = TagScope.track;
 
   @override
   void initState() {
@@ -295,27 +297,47 @@ class TagManagerScreenState extends ConsumerState<TagManagerScreen> {
   Future<void> _createTag() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Validation supplémentaire
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Le nom du tag ne peut pas être vide')),
+      );
+      return;
+    }
+
     final newTag = Tag(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: _nameController.text,
+      name: _nameController.text.trim(),
       color: _selectedColor,
-      scope: TagScope.PLAYLIST,
+      scope: _selectedScope, // Utilisation de _selectedScope au lieu de PLAYLIST
     );
 
     try {
       await ref.read(tagsProvider.notifier).addTag(newTag);
+
+      // Réinitialisation du formulaire
       _nameController.clear();
-      setState(() => _selectedColor = Colors.blue);
+      setState(() {
+        _selectedColor = Colors.blue;
+        _selectedScope = TagScope.track; // Réinitialisation du scope
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tag créé avec succès !')),
+          const SnackBar(
+            content: Text('Tag créé avec succès !'),
+            duration: Duration(seconds: 2),
+          ),
         );
+        Navigator.pop(context); // Ferme le dialogue si on est dans un dialogue
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
+          SnackBar(
+            content: Text('Erreur lors de la création du tag: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }

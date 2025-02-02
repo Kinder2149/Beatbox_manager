@@ -39,6 +39,7 @@ class PaginatedState<T> {
 class MagicSetsScreen extends ConsumerStatefulWidget {
   const MagicSetsScreen({Key? key}) : super(key: key);
 
+
   @override
   MagicSetsScreenState createState() => MagicSetsScreenState();
 }
@@ -52,6 +53,11 @@ class MagicSetsScreenState extends ConsumerState<MagicSetsScreen> {
       appBar: AppBar(
         title: const Text('Magic Sets'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            tooltip: 'Tester les fonctionnalités',
+            onPressed: _testNewFeatures,
+          ),
           IconButton(
             icon: const Icon(Icons.local_offer),
             onPressed: () => Navigator.pushNamed(context, '/tag-manager'),
@@ -134,6 +140,62 @@ class MagicSetsScreenState extends ConsumerState<MagicSetsScreen> {
       '/magic-set-detail',
       arguments: set,
     );
+  }
+  Future<void> _testNewFeatures() async {
+    try {
+      // 1. Créer un MagicSet basique
+      final newSet = MagicSet.create(
+        name: 'Test Set',
+        playlistId: 'playlist_id_test',
+        description: 'Test description',
+      );
+
+      await ref.read(magicSetsProvider.notifier).createSet(
+        newSet.name,
+        newSet.playlistId,
+        description: newSet.description,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('1. MagicSet créé')),
+        );
+      }
+
+      // 2. Sauvegarder en tant que template
+      await ref.read(magicSetsProvider.notifier).saveAsTemplate(newSet.id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('2. Template créé')),
+        );
+      }
+
+      // 3. Exporter en JSON
+      final jsonData = await ref.read(magicSetsProvider.notifier)
+          .exportSet(newSet.id, ExportFormat.JSON);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('3. Export JSON: ${jsonData.substring(0, 50)}...'),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+      print('Erreur de test: $e');
+    }
   }
 
   Future<void> _showCreateSetDialog() async {

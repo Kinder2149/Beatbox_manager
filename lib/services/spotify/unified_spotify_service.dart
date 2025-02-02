@@ -61,6 +61,15 @@ class UnifiedSpotifyService with ChangeNotifier {
       await clearCredentials();
     }
   }
+  Future<Track> getTrack(String trackId) async {
+    if (!isConnected) throw Exception('Non connecté à Spotify');
+    try {
+      return await _spotify!.tracks.get(trackId);
+    } catch (e) {
+      print('Erreur lors de la récupération du track: $e');
+      rethrow;
+    }
+  }
 
   Future<void> _initializeFromPrefs(SharedPreferences prefs) async {
     try {

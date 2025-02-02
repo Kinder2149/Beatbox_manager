@@ -134,12 +134,13 @@ class __$$TagImplCopyWithImpl<$Res> extends _$TagCopyWithImpl<$Res, _$TagImpl>
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$TagImpl implements _Tag {
-  _$TagImpl(
+class _$TagImpl extends _Tag {
+  const _$TagImpl(
       {required this.id,
       required this.name,
       @ColorConverter() required this.color,
-      required this.scope});
+      required this.scope})
+      : super._();
 
   factory _$TagImpl.fromJson(Map<String, dynamic> json) =>
       _$$TagImplFromJson(json);
@@ -190,12 +191,13 @@ class _$TagImpl implements _Tag {
   }
 }
 
-abstract class _Tag implements Tag {
-  factory _Tag(
+abstract class _Tag extends Tag {
+  const factory _Tag(
       {required final String id,
       required final String name,
       @ColorConverter() required final Color color,
       required final TagScope scope}) = _$TagImpl;
+  const _Tag._() : super._();
 
   factory _Tag.fromJson(Map<String, dynamic> json) = _$TagImpl.fromJson;
 
@@ -227,6 +229,11 @@ mixin _$TrackInfo {
   List<Tag> get tags => throw _privateConstructorUsedError;
   String get notes => throw _privateConstructorUsedError;
   Map<String, dynamic> get customFields => throw _privateConstructorUsedError;
+  @DurationConverter()
+  Duration get duration => throw _privateConstructorUsedError;
+  String? get key => throw _privateConstructorUsedError;
+  int? get bpm => throw _privateConstructorUsedError;
+  Map<String, dynamic> get customMetadata => throw _privateConstructorUsedError;
 
   /// Serializes this TrackInfo to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -247,7 +254,11 @@ abstract class $TrackInfoCopyWith<$Res> {
       {String trackId,
       List<Tag> tags,
       String notes,
-      Map<String, dynamic> customFields});
+      Map<String, dynamic> customFields,
+      @DurationConverter() Duration duration,
+      String? key,
+      int? bpm,
+      Map<String, dynamic> customMetadata});
 }
 
 /// @nodoc
@@ -269,6 +280,10 @@ class _$TrackInfoCopyWithImpl<$Res, $Val extends TrackInfo>
     Object? tags = null,
     Object? notes = null,
     Object? customFields = null,
+    Object? duration = null,
+    Object? key = freezed,
+    Object? bpm = freezed,
+    Object? customMetadata = null,
   }) {
     return _then(_value.copyWith(
       trackId: null == trackId
@@ -287,6 +302,22 @@ class _$TrackInfoCopyWithImpl<$Res, $Val extends TrackInfo>
           ? _value.customFields
           : customFields // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>,
+      duration: null == duration
+          ? _value.duration
+          : duration // ignore: cast_nullable_to_non_nullable
+              as Duration,
+      key: freezed == key
+          ? _value.key
+          : key // ignore: cast_nullable_to_non_nullable
+              as String?,
+      bpm: freezed == bpm
+          ? _value.bpm
+          : bpm // ignore: cast_nullable_to_non_nullable
+              as int?,
+      customMetadata: null == customMetadata
+          ? _value.customMetadata
+          : customMetadata // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
     ) as $Val);
   }
 }
@@ -303,7 +334,11 @@ abstract class _$$TrackInfoImplCopyWith<$Res>
       {String trackId,
       List<Tag> tags,
       String notes,
-      Map<String, dynamic> customFields});
+      Map<String, dynamic> customFields,
+      @DurationConverter() Duration duration,
+      String? key,
+      int? bpm,
+      Map<String, dynamic> customMetadata});
 }
 
 /// @nodoc
@@ -323,6 +358,10 @@ class __$$TrackInfoImplCopyWithImpl<$Res>
     Object? tags = null,
     Object? notes = null,
     Object? customFields = null,
+    Object? duration = null,
+    Object? key = freezed,
+    Object? bpm = freezed,
+    Object? customMetadata = null,
   }) {
     return _then(_$TrackInfoImpl(
       trackId: null == trackId
@@ -341,6 +380,22 @@ class __$$TrackInfoImplCopyWithImpl<$Res>
           ? _value._customFields
           : customFields // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>,
+      duration: null == duration
+          ? _value.duration
+          : duration // ignore: cast_nullable_to_non_nullable
+              as Duration,
+      key: freezed == key
+          ? _value.key
+          : key // ignore: cast_nullable_to_non_nullable
+              as String?,
+      bpm: freezed == bpm
+          ? _value.bpm
+          : bpm // ignore: cast_nullable_to_non_nullable
+              as int?,
+      customMetadata: null == customMetadata
+          ? _value._customMetadata
+          : customMetadata // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
     ));
   }
 }
@@ -348,14 +403,20 @@ class __$$TrackInfoImplCopyWithImpl<$Res>
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$TrackInfoImpl implements _TrackInfo {
-  _$TrackInfoImpl(
+class _$TrackInfoImpl extends _TrackInfo {
+  const _$TrackInfoImpl(
       {required this.trackId,
       final List<Tag> tags = const [],
       this.notes = '',
-      final Map<String, dynamic> customFields = const {}})
+      final Map<String, dynamic> customFields = const {},
+      @DurationConverter() this.duration = Duration.zero,
+      this.key,
+      this.bpm,
+      final Map<String, dynamic> customMetadata = const {}})
       : _tags = tags,
-        _customFields = customFields;
+        _customFields = customFields,
+        _customMetadata = customMetadata,
+        super._();
 
   factory _$TrackInfoImpl.fromJson(Map<String, dynamic> json) =>
       _$$TrackInfoImplFromJson(json);
@@ -384,8 +445,25 @@ class _$TrackInfoImpl implements _TrackInfo {
   }
 
   @override
+  @JsonKey()
+  @DurationConverter()
+  final Duration duration;
+  @override
+  final String? key;
+  @override
+  final int? bpm;
+  final Map<String, dynamic> _customMetadata;
+  @override
+  @JsonKey()
+  Map<String, dynamic> get customMetadata {
+    if (_customMetadata is EqualUnmodifiableMapView) return _customMetadata;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_customMetadata);
+  }
+
+  @override
   String toString() {
-    return 'TrackInfo(trackId: $trackId, tags: $tags, notes: $notes, customFields: $customFields)';
+    return 'TrackInfo(trackId: $trackId, tags: $tags, notes: $notes, customFields: $customFields, duration: $duration, key: $key, bpm: $bpm, customMetadata: $customMetadata)';
   }
 
   @override
@@ -397,7 +475,13 @@ class _$TrackInfoImpl implements _TrackInfo {
             const DeepCollectionEquality().equals(other._tags, _tags) &&
             (identical(other.notes, notes) || other.notes == notes) &&
             const DeepCollectionEquality()
-                .equals(other._customFields, _customFields));
+                .equals(other._customFields, _customFields) &&
+            (identical(other.duration, duration) ||
+                other.duration == duration) &&
+            (identical(other.key, key) || other.key == key) &&
+            (identical(other.bpm, bpm) || other.bpm == bpm) &&
+            const DeepCollectionEquality()
+                .equals(other._customMetadata, _customMetadata));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -407,7 +491,11 @@ class _$TrackInfoImpl implements _TrackInfo {
       trackId,
       const DeepCollectionEquality().hash(_tags),
       notes,
-      const DeepCollectionEquality().hash(_customFields));
+      const DeepCollectionEquality().hash(_customFields),
+      duration,
+      key,
+      bpm,
+      const DeepCollectionEquality().hash(_customMetadata));
 
   /// Create a copy of TrackInfo
   /// with the given fields replaced by the non-null parameter values.
@@ -425,12 +513,17 @@ class _$TrackInfoImpl implements _TrackInfo {
   }
 }
 
-abstract class _TrackInfo implements TrackInfo {
-  factory _TrackInfo(
+abstract class _TrackInfo extends TrackInfo {
+  const factory _TrackInfo(
       {required final String trackId,
       final List<Tag> tags,
       final String notes,
-      final Map<String, dynamic> customFields}) = _$TrackInfoImpl;
+      final Map<String, dynamic> customFields,
+      @DurationConverter() final Duration duration,
+      final String? key,
+      final int? bpm,
+      final Map<String, dynamic> customMetadata}) = _$TrackInfoImpl;
+  const _TrackInfo._() : super._();
 
   factory _TrackInfo.fromJson(Map<String, dynamic> json) =
       _$TrackInfoImpl.fromJson;
@@ -443,6 +536,15 @@ abstract class _TrackInfo implements TrackInfo {
   String get notes;
   @override
   Map<String, dynamic> get customFields;
+  @override
+  @DurationConverter()
+  Duration get duration;
+  @override
+  String? get key;
+  @override
+  int? get bpm;
+  @override
+  Map<String, dynamic> get customMetadata;
 
   /// Create a copy of TrackInfo
   /// with the given fields replaced by the non-null parameter values.
@@ -469,6 +571,7 @@ mixin _$MagicSet {
   @DurationConverter()
   Duration get totalDuration => throw _privateConstructorUsedError;
   bool get isTemplate => throw _privateConstructorUsedError;
+  Map<String, dynamic> get metadata => throw _privateConstructorUsedError;
 
   /// Serializes this MagicSet to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -495,7 +598,8 @@ abstract class $MagicSetCopyWith<$Res> {
       DateTime createdAt,
       DateTime updatedAt,
       @DurationConverter() Duration totalDuration,
-      bool isTemplate});
+      bool isTemplate,
+      Map<String, dynamic> metadata});
 }
 
 /// @nodoc
@@ -523,6 +627,7 @@ class _$MagicSetCopyWithImpl<$Res, $Val extends MagicSet>
     Object? updatedAt = null,
     Object? totalDuration = null,
     Object? isTemplate = null,
+    Object? metadata = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -565,6 +670,10 @@ class _$MagicSetCopyWithImpl<$Res, $Val extends MagicSet>
           ? _value.isTemplate
           : isTemplate // ignore: cast_nullable_to_non_nullable
               as bool,
+      metadata: null == metadata
+          ? _value.metadata
+          : metadata // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
     ) as $Val);
   }
 }
@@ -587,7 +696,8 @@ abstract class _$$MagicSetImplCopyWith<$Res>
       DateTime createdAt,
       DateTime updatedAt,
       @DurationConverter() Duration totalDuration,
-      bool isTemplate});
+      bool isTemplate,
+      Map<String, dynamic> metadata});
 }
 
 /// @nodoc
@@ -613,6 +723,7 @@ class __$$MagicSetImplCopyWithImpl<$Res>
     Object? updatedAt = null,
     Object? totalDuration = null,
     Object? isTemplate = null,
+    Object? metadata = null,
   }) {
     return _then(_$MagicSetImpl(
       id: null == id
@@ -655,6 +766,10 @@ class __$$MagicSetImplCopyWithImpl<$Res>
           ? _value.isTemplate
           : isTemplate // ignore: cast_nullable_to_non_nullable
               as bool,
+      metadata: null == metadata
+          ? _value._metadata
+          : metadata // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
     ));
   }
 }
@@ -662,8 +777,8 @@ class __$$MagicSetImplCopyWithImpl<$Res>
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$MagicSetImpl implements _MagicSet {
-  _$MagicSetImpl(
+class _$MagicSetImpl extends _MagicSet {
+  const _$MagicSetImpl(
       {required this.id,
       required this.name,
       required this.playlistId,
@@ -673,9 +788,12 @@ class _$MagicSetImpl implements _MagicSet {
       required this.createdAt,
       required this.updatedAt,
       @DurationConverter() required this.totalDuration,
-      this.isTemplate = false})
+      this.isTemplate = false,
+      final Map<String, dynamic> metadata = const {}})
       : _tracks = tracks,
-        _tags = tags;
+        _tags = tags,
+        _metadata = metadata,
+        super._();
 
   factory _$MagicSetImpl.fromJson(Map<String, dynamic> json) =>
       _$$MagicSetImplFromJson(json);
@@ -717,10 +835,18 @@ class _$MagicSetImpl implements _MagicSet {
   @override
   @JsonKey()
   final bool isTemplate;
+  final Map<String, dynamic> _metadata;
+  @override
+  @JsonKey()
+  Map<String, dynamic> get metadata {
+    if (_metadata is EqualUnmodifiableMapView) return _metadata;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_metadata);
+  }
 
   @override
   String toString() {
-    return 'MagicSet(id: $id, name: $name, playlistId: $playlistId, description: $description, tracks: $tracks, tags: $tags, createdAt: $createdAt, updatedAt: $updatedAt, totalDuration: $totalDuration, isTemplate: $isTemplate)';
+    return 'MagicSet(id: $id, name: $name, playlistId: $playlistId, description: $description, tracks: $tracks, tags: $tags, createdAt: $createdAt, updatedAt: $updatedAt, totalDuration: $totalDuration, isTemplate: $isTemplate, metadata: $metadata)';
   }
 
   @override
@@ -743,7 +869,8 @@ class _$MagicSetImpl implements _MagicSet {
             (identical(other.totalDuration, totalDuration) ||
                 other.totalDuration == totalDuration) &&
             (identical(other.isTemplate, isTemplate) ||
-                other.isTemplate == isTemplate));
+                other.isTemplate == isTemplate) &&
+            const DeepCollectionEquality().equals(other._metadata, _metadata));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -759,7 +886,8 @@ class _$MagicSetImpl implements _MagicSet {
       createdAt,
       updatedAt,
       totalDuration,
-      isTemplate);
+      isTemplate,
+      const DeepCollectionEquality().hash(_metadata));
 
   /// Create a copy of MagicSet
   /// with the given fields replaced by the non-null parameter values.
@@ -777,8 +905,8 @@ class _$MagicSetImpl implements _MagicSet {
   }
 }
 
-abstract class _MagicSet implements MagicSet {
-  factory _MagicSet(
+abstract class _MagicSet extends MagicSet {
+  const factory _MagicSet(
       {required final String id,
       required final String name,
       required final String playlistId,
@@ -788,7 +916,9 @@ abstract class _MagicSet implements MagicSet {
       required final DateTime createdAt,
       required final DateTime updatedAt,
       @DurationConverter() required final Duration totalDuration,
-      final bool isTemplate}) = _$MagicSetImpl;
+      final bool isTemplate,
+      final Map<String, dynamic> metadata}) = _$MagicSetImpl;
+  const _MagicSet._() : super._();
 
   factory _MagicSet.fromJson(Map<String, dynamic> json) =
       _$MagicSetImpl.fromJson;
@@ -814,6 +944,8 @@ abstract class _MagicSet implements MagicSet {
   Duration get totalDuration;
   @override
   bool get isTemplate;
+  @override
+  Map<String, dynamic> get metadata;
 
   /// Create a copy of MagicSet
   /// with the given fields replaced by the non-null parameter values.

@@ -33,8 +33,9 @@ Map<String, dynamic> _$$TagImplToJson(_$TagImpl instance) => <String, dynamic>{
     };
 
 const _$TagScopeEnumMap = {
-  TagScope.PLAYLIST: 'PLAYLIST',
-  TagScope.TRACK: 'TRACK',
+  TagScope.track: 'track',
+  TagScope.set: 'set',
+  TagScope.global: 'global',
 };
 
 _$TrackInfoImpl _$$TrackInfoImplFromJson(Map<String, dynamic> json) =>
@@ -46,6 +47,14 @@ _$TrackInfoImpl _$$TrackInfoImplFromJson(Map<String, dynamic> json) =>
           const [],
       notes: json['notes'] as String? ?? '',
       customFields: json['customFields'] as Map<String, dynamic>? ?? const {},
+      duration: json['duration'] == null
+          ? Duration.zero
+          : const DurationConverter()
+              .fromJson((json['duration'] as num).toInt()),
+      key: json['key'] as String?,
+      bpm: (json['bpm'] as num?)?.toInt(),
+      customMetadata:
+          json['customMetadata'] as Map<String, dynamic>? ?? const {},
     );
 
 Map<String, dynamic> _$$TrackInfoImplToJson(_$TrackInfoImpl instance) =>
@@ -54,6 +63,10 @@ Map<String, dynamic> _$$TrackInfoImplToJson(_$TrackInfoImpl instance) =>
       'tags': instance.tags.map((e) => e.toJson()).toList(),
       'notes': instance.notes,
       'customFields': instance.customFields,
+      'duration': const DurationConverter().toJson(instance.duration),
+      'key': instance.key,
+      'bpm': instance.bpm,
+      'customMetadata': instance.customMetadata,
     };
 
 _$MagicSetImpl _$$MagicSetImplFromJson(Map<String, dynamic> json) =>
@@ -75,6 +88,7 @@ _$MagicSetImpl _$$MagicSetImplFromJson(Map<String, dynamic> json) =>
       totalDuration: const DurationConverter()
           .fromJson((json['totalDuration'] as num).toInt()),
       isTemplate: json['isTemplate'] as bool? ?? false,
+      metadata: json['metadata'] as Map<String, dynamic>? ?? const {},
     );
 
 Map<String, dynamic> _$$MagicSetImplToJson(_$MagicSetImpl instance) =>
@@ -89,4 +103,5 @@ Map<String, dynamic> _$$MagicSetImplToJson(_$MagicSetImpl instance) =>
       'updatedAt': instance.updatedAt.toIso8601String(),
       'totalDuration': const DurationConverter().toJson(instance.totalDuration),
       'isTemplate': instance.isTemplate,
+      'metadata': instance.metadata,
     };
