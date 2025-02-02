@@ -7,6 +7,8 @@ import '../../providers/unified_providers.dart';
 import '../../theme/app_theme.dart';
 import 'package:beatbox_manager/providers/magic_set_providers.dart';
 import 'package:beatbox_manager/widgets/tag_details_dialog.dart';
+import 'package:flutter/foundation.dart' show listEquals;
+import '../../utils/unified_utils.dart';
 
 
 class TagManagerScreen extends ConsumerStatefulWidget {
@@ -21,17 +23,28 @@ class TagManagerScreen extends ConsumerStatefulWidget {
   TagManagerScreenState createState() => TagManagerScreenState();
 }
 
-class TagManagerScreenState extends ConsumerState<TagManagerScreen> {
+class TagManagerScreenState extends ConsumerState<TagManagerScreen>
+    with UnsavedChangesMixin {
   List<Tag> _selectedTags = [];
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   Color _selectedColor = Colors.blue;
   TagScope _selectedScope = TagScope.track;
+  bool _isEditing = false;
 
   @override
   void initState() {
     super.initState();
-    _selectedTags = List.from(widget.initialSelectedTags ?? []);
+    _nameController.addListener(() {
+      hasUnsavedChanges = _nameController.text.isNotEmpty || _isEditing;
+    });
+  }
+  @override
+  Future<void> saveChanges() async {
+    if (_isEditing) {
+      return _createTag();
+    }
+    return Future.value();
   }
 
   @override
@@ -40,11 +53,14 @@ class TagManagerScreenState extends ConsumerState<TagManagerScreen> {
     super.dispose();
   }
 
+
   @override
   Widget build(BuildContext context) {
-    final allTags = ref.watch(tagsProvider).value ?? [];
+    final tagsState = ref.watch(tagsProvider);
 
-    return Scaffold(
+    return WillPopScope(
+        onWillPop: () => onWillPop(),
+    child: Scaffold(
       appBar: AppBar(
         title: const Text('Gestion des Tags'),
         actions: [
@@ -67,16 +83,16 @@ class TagManagerScreenState extends ConsumerState<TagManagerScreen> {
           children: [
             _buildTagCreator(),
             Expanded(
-              child: _buildTagsList(allTags),
+              child: tagsState.when(
+                data: (tags) => _buildTagsList(tags),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, stack) => Center(child: Text('Erreur: $err')),
+              ),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCreateTagDialog(context),
-        child: const Icon(Icons.add),
-        backgroundColor: AppTheme.spotifyGreen,
-      ),
+    ),
     );
   }
 
@@ -246,6 +262,8 @@ class TagManagerScreenState extends ConsumerState<TagManagerScreen> {
   }
   // Dans TagManagerScreen
   Future<void> _showCreateTagDialog(BuildContext context) async {
+    setState(() => _isEditing = true);
+    try {
     _nameController.clear();
     setState(() => _selectedColor = Colors.blue);
 
@@ -292,7 +310,11 @@ class TagManagerScreenState extends ConsumerState<TagManagerScreen> {
     if (result == true && _formKey.currentState!.validate()) {
       await _createTag();
     }
+    } finally {
+      setState(() => _isEditing = false);
+    }
   }
+
 
   Future<void> _createTag() async {
     if (!_formKey.currentState!.validate()) return;

@@ -8,6 +8,11 @@ import '../../theme/app_theme.dart';
 import '../../widgets/unified_widgets.dart';
 import 'package:spotify/spotify.dart';
 import 'package:beatbox_manager/providers/magic_set_providers.dart';
+import 'package:beatbox_manager/utils/unified_utils.dart';
+import 'package:flutter/foundation.dart' show listEquals;
+import '../../utils/unified_utils.dart';
+
+
 
 class MagicSetEditorScreen extends ConsumerStatefulWidget {
   final MagicSet? set;
@@ -18,7 +23,8 @@ class MagicSetEditorScreen extends ConsumerStatefulWidget {
   MagicSetEditorScreenState createState() => MagicSetEditorScreenState();
 }
 
-class MagicSetEditorScreenState extends ConsumerState<MagicSetEditorScreen> {
+class MagicSetEditorScreenState extends ConsumerState<MagicSetEditorScreen>
+    with UnsavedChangesMixin {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
@@ -26,32 +32,64 @@ class MagicSetEditorScreenState extends ConsumerState<MagicSetEditorScreen> {
   List<Tag> _selectedTags = [];
   bool _isTemplate = false;
   bool _isSaving = false;
+  Map<String, dynamic> _originalValues = {};
 
   @override
   void initState() {
     super.initState();
+    _originalValues = {
+      'name': widget.set?.name ?? '',
+      'description': widget.set?.description ?? '',
+      'tags': List<Tag>.from(widget.set?.tags ?? []),
+      'isTemplate': widget.set?.isTemplate ?? false,
+    };
     _nameController = TextEditingController(text: widget.set?.name ?? '');
-    _descriptionController =
-        TextEditingController(text: widget.set?.description ?? '');
-    _selectedPlaylistId = widget.set?.playlistId;
+    _descriptionController = TextEditingController(text: widget.set?.description ?? '');
     _selectedTags = List.from(widget.set?.tags ?? []);
-    _isTemplate = widget.set?.isTemplate ?? false;
+
+    // Ajouter les listeners pour détecter les changements
+    _nameController.addListener(_onFieldChanged);
+    _descriptionController.addListener(_onFieldChanged);
+  }
+  void _onFieldChanged() {
+    hasUnsavedChanges = true;
+  }
+  void _onTagsChanged(List<Tag> tags) {
+    setState(() {
+      _selectedTags = tags;
+      hasUnsavedChanges = true;
+    });
+  }
+  bool _hasChanges() {
+    return _nameController.text != _originalValues['name'] ||
+        _descriptionController.text != _originalValues['description'] ||
+        !listEquals(_selectedTags, _originalValues['tags']) ||
+        _isTemplate != _originalValues['isTemplate'];
   }
 
   @override
-  void dispose() {
-    _nameController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
+  Future<void> saveChanges() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSaving = true);
+    try {
+      await _saveSet(context);
+      hasUnsavedChanges = false;
+    } finally {
+      setState(() => _isSaving = false);
+    }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
-    final playlists = ref
-        .watch(playlistsProvider)
-        .items;
+    final playlists = ref.watch(playlistsProvider);
+    final playlistItems = playlists.items;
 
-    return Scaffold(
+    return WillPopScope(
+        onWillPop: () => onWillPop(),
+    child: Scaffold(
       appBar: AppBar(
         title: Text(
             widget.set == null ? 'Nouveau Magic Set' : 'Modifier Magic Set'),
@@ -84,7 +122,7 @@ class MagicSetEditorScreenState extends ConsumerState<MagicSetEditorScreen> {
           child: ListView(
             padding: const EdgeInsets.all(16.0),
             children: [
-              _buildBasicInfo(playlists),
+              _buildBasicInfo(playlistItems),  // Utilisation de la bonne variable
               const SizedBox(height: 24),
               _buildTagsSection(),
               const SizedBox(height: 24),
@@ -93,8 +131,10 @@ class MagicSetEditorScreenState extends ConsumerState<MagicSetEditorScreen> {
           ),
         ),
       ),
+    ),
     );
   }
+
 
   Widget _buildBasicInfo(List<PlaylistSimple> playlists) {
     return Card(
@@ -307,5 +347,11 @@ class MagicSetEditorScreenState extends ConsumerState<MagicSetEditorScreen> {
         );
       }
     }
+  }
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
   }
 }

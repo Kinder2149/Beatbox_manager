@@ -6,13 +6,11 @@ import '../screens/playlists_screen.dart';
 import '../screens/liked_tracks_screen.dart';
 import '../screens/playlist_tracks_screen.dart';
 import '../models/magic_set_models.dart';
-import 'package:flutter/material.dart';
 import '../screens/magic_sets/magic_sets_screen.dart';
 import '../screens/magic_sets/magic_set_detail_screen.dart';
 import '../screens/magic_sets/magic_set_editor_screen.dart';
 import '../screens/magic_sets/tag_manager_screen.dart';
-import '../models/magic_set_models.dart';
-
+import '../screens/magic_sets/track_detail_screen.dart';
 
 class AppRoutes {
   static const String home = '/';
@@ -24,7 +22,7 @@ class AppRoutes {
   static const String magicSetDetail = '/magic-set-detail';
   static const String magicSetEditor = '/magic-set-editor';
   static const String tagManager = '/tag-manager';
-
+  static const String trackDetail = '/track-detail';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -51,21 +49,14 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => MagicSetEditorScreen(set: set));
       case tagManager:
         return MaterialPageRoute(builder: (_) => const TagManagerScreen());
-      case '/magic-set-detail':
-        final set = settings.arguments as MagicSet;
+      case trackDetail:
+        final args = settings.arguments as Map<String, dynamic>;
         return MaterialPageRoute(
-          builder: (_) => MagicSetDetailScreen(set: set),
+          builder: (_) => TrackDetailScreen(
+            setId: args['setId'] as String,
+            track: args['track'] as TrackInfo,
+          ),
         );
-      case '/magic-set-detail':
-        final set = settings.arguments as MagicSet?;
-        if (set == null) {
-          return MaterialPageRoute(
-            builder: (_) => const Scaffold(
-              body: Center(child: Text('Magic Set non trouvé')),
-            ),
-          );
-        }
-        return MaterialPageRoute(builder: (_) => MagicSetDetailScreen(set: set));
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

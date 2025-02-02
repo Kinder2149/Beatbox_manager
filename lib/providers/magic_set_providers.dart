@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/magic_set_models.dart';
 import '../services/magic_set_service.dart';
 import 'unified_providers.dart';
-
+import 'package:beatbox_manager/utils/unified_utils.dart';
 // Provider pour le service MagicSet
 final magicSetServiceProvider = Provider<MagicSetService>((ref) {
   final spotifyService = ref.watch(spotifyServiceProvider);
@@ -118,7 +118,41 @@ class MagicSetsNotifier extends StateNotifier<AsyncValue<List<MagicSet>>> {
       state = AsyncValue.error(e, stack);
     }
   }
+  Future<void> updateTrack(String setId, TrackInfo updatedTrack) async {
+    try {
+      // Valider les données
+      Validators.validateTrackInfo(updatedTrack);
+
+      final currentState = state.value;
+      if (currentState == null) throw AppException('État non initialisé');
+
+      final setIndex = currentState.indexWhere((s) => s.id == setId);
+      if (setIndex == -1) {
+        throw AppException('Set non trouvé', type: ErrorType.validation);
+      }
+
+      final set = currentState[setIndex];
+      final updatedSet = set.updateTrack(updatedTrack);
+
+      // Valider le set complet
+      Validators.validateMagicSet(updatedSet);
+
+      // Mettre à jour le cache et l'état
+      await _service.saveMagicSet(updatedSet);
+
+      state = AsyncValue.data([
+        ...currentState.sublist(0, setIndex),
+        updatedSet,
+        ...currentState.sublist(setIndex + 1),
+      ]);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+      rethrow;
+    }
+  }
 }
+
+
 
 class TemplatesNotifier extends StateNotifier<AsyncValue<List<MagicSet>>> {
   final MagicSetService _service;

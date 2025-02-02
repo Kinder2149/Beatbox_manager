@@ -438,3 +438,200 @@ class MagicSetExporter {
     }
   }
 }
+class ValidationException implements Exception {
+  final String message;
+  final String? field;
+  final dynamic value;
+
+  ValidationException(this.message, {this.field, this.value});
+
+  @override
+  String toString() => 'ValidationException: $message${field != null ? ' (field: $field)' : ''}';
+}
+
+class Validators {
+  static void validateMagicSet(MagicSet set) {
+    if (set.name.isEmpty) {
+      throw ValidationException('Le nom du set ne peut pas être vide', field: 'name');
+    }
+    if (set.playlistId.isEmpty) {
+      throw ValidationException('L\'ID de playlist est requis', field: 'playlistId');
+    }
+
+    // Valider chaque piste
+    for (var track in set.tracks) {
+      validateTrackInfo(track);
+    }
+
+    // Valider les tags
+    for (var tag in set.tags) {
+      validateTag(tag);
+    }
+  }
+
+  static void validateTrackInfo(TrackInfo track) {
+    if (track.trackId.isEmpty) {
+      throw ValidationException('L\'ID de piste est requis', field: 'trackId');
+    }
+
+    // Valider la durée
+    if (track.duration.inMilliseconds < 0) {
+      throw ValidationException('La durée doit être positive',
+          field: 'duration',
+          value: track.duration
+      );
+    }
+
+    // Valider le BPM
+    if (track.bpm != null && (track.bpm! < 0 || track.bpm! > 999)) {
+      throw ValidationException('BPM invalide (doit être entre 0 et 999)',
+          field: 'bpm',
+          value: track.bpm
+      );
+    }
+  }
+
+  static void validateTag(Tag tag) {
+    if (tag.name.isEmpty) {
+      throw ValidationException('Le nom du tag ne peut pas être vide', field: 'name');
+    }
+    if (tag.id.isEmpty) {
+      throw ValidationException('L\'ID du tag est requis', field: 'id');
+    }
+  }
+}
+enum ErrorType {
+  validation,
+  network,
+  cache,
+  authentication,
+  unknown
+}
+
+class AppException implements Exception {
+  final String message;
+  final ErrorType type;
+  final dynamic originalError;
+  final StackTrace? stackTrace;
+
+  AppException(
+      this.message, {
+        this.type = ErrorType.unknown,
+        this.originalError,
+        this.stackTrace,
+      });
+
+  @override
+  String toString() => 'AppException: $message (type: $type)';
+}
+
+
+class ErrorHandler {
+  static void handleError(
+      BuildContext context,
+      dynamic error,
+      StackTrace? stackTrace, {
+        String? friendlyMessage,
+        VoidCallback? onRetry,
+      }) {
+    // Log l'erreur
+    print('Error: $error');
+    if (stackTrace != null) print('StackTrace: $stackTrace');
+
+    // Détermine le message à afficher
+    String message = friendlyMessage ?? _getFriendlyMessage(error);
+
+    // Affiche le SnackBar approprié
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: onRetry != null
+            ? SnackBarAction(
+          label: 'Réessayer',
+          onPressed: onRetry,
+        )
+            : null,
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: _getColorForError(error),
+      ),
+    );
+  }
+
+  static String _getFriendlyMessage(dynamic error) {
+    if (error is ValidationException) {
+      return 'Erreur de validation: ${error.message}';
+    }
+    if (error is AppException) {
+      switch (error.type) {
+        case ErrorType.network:
+          return 'Erreur de connexion. Vérifiez votre connexion internet.';
+        case ErrorType.cache:
+          return 'Erreur de cache. Essayez de rafraîchir l\'application.';
+        case ErrorType.authentication:
+          return 'Erreur d\'authentification. Veuillez vous reconnecter.';
+        default:
+          return error.message;
+      }
+    }
+    return 'Une erreur inattendue s\'est produite';
+  }
+
+  static Color _getColorForError(dynamic error) {
+    if (error is ValidationException) return Colors.orange;
+    if (error is AppException) {
+      switch (error.type) {
+        case ErrorType.network:
+          return Colors.red;
+        case ErrorType.authentication:
+          return Colors.purple;
+        default:
+          return Colors.red;
+      }
+    }
+    return Colors.red;
+  }
+}
+
+mixin UnsavedChangesMixin<T extends StatefulWidget> on State<T> {
+  bool _hasUnsavedChanges = false;
+
+  set hasUnsavedChanges(bool value) {
+    setState(() => _hasUnsavedChanges = value);
+  }
+
+  bool get hasUnsavedChanges => _hasUnsavedChanges;
+
+  Future<bool> onWillPop() async {
+    if (!_hasUnsavedChanges) return true;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Modifications non sauvegardées'),
+        content: const Text(
+            'Vous avez des modifications non sauvegardées. '
+                'Voulez-vous les sauvegarder avant de quitter ?'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Ignorer'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sauvegarder'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == null) return false;
+    if (result) {
+      // Appeler la méthode de sauvegarde
+      await saveChanges();
+    }
+    return true;
+  }
+
+  Future<void> saveChanges();
+}

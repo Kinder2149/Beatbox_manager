@@ -1,14 +1,19 @@
 // lib/screens/magic_sets/magic_set_detail_screen.dart - PARTIE 1
 
 import 'package:flutter/material.dart';
+
+
+import 'package:spotify/spotify.dart' as spotify hide Image;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/magic_set_models.dart';
 import '../../providers/unified_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/unified_widgets.dart';
-import 'package:spotify/spotify.dart' hide Player;
 import '../../providers/magic_set_providers.dart';
 import 'package:beatbox_manager/widgets/tag_details_dialog.dart';
+import 'package:beatbox_manager/config/routes.dart';
+
+
 
 class MagicSetDetailScreen extends ConsumerStatefulWidget {
   final MagicSet set;
@@ -356,27 +361,20 @@ class MagicSetDetailScreenState extends ConsumerState<MagicSetDetailScreen> {
     );
   }
 
-  Future<void> _showTrackDetails(BuildContext context, MagicSet set,
-      TrackInfo track) async {
-    final spotifyTrack = await ref.read(
-        spotifyTrackProvider(track.trackId).future);
-
-    if (!mounted) return;
-
-    await showDialog(
-      context: context,
-      builder: (context) =>
-          TrackDetailsDialog(
-            set: set,
-            trackInfo: track,
-            spotifyTrack: spotifyTrack,
-          ),
+  void _showTrackDetails(BuildContext context, MagicSet set, TrackInfo track) {
+    Navigator.pushNamed(
+      context,
+      AppRoutes.trackDetail,
+      arguments: {
+        'setId': set.id,
+        'track': track,
+      },
     );
   }
 }
 class AddTracksDialog extends ConsumerStatefulWidget {
   final MagicSet currentSet;
-  final List<Track> availableTracks;
+  final List<spotify.Track> availableTracks;  // Ajoutez spotify.
   final Set<String> selectedTracks;
 
   const AddTracksDialog({
@@ -390,7 +388,7 @@ class AddTracksDialog extends ConsumerStatefulWidget {
   AddTracksDialogState createState() => AddTracksDialogState();
 }
 // Ajouter d'abord une classe TrackListItem qu'il manquait :
-class _TrackListItem extends StatelessWidget {
+class _TrackListItem extends ConsumerWidget {
   final TrackInfo track;
   final VoidCallback onTap;
   final Function(Tag) onTagTap;
@@ -402,22 +400,52 @@ class _TrackListItem extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: onTap,
-      title: Text(track.trackId),
-      subtitle: Wrap(
-        spacing: 4,
-        children: track.tags.map((tag) =>
-            ActionChip(
-              label: Text(tag.name),
-              backgroundColor: tag.color,
-              labelStyle: const TextStyle(color: Colors.white),
-              onPressed: () => onTagTap(tag),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final trackData = ref.watch(spotifyTrackProvider(track.trackId));
+
+    return trackData.when(
+      data: (spotifyTrack) => ListTile(
+        onTap: onTap,
+        leading: spotifyTrack.album?.images?.isNotEmpty ?? false
+            ? SizedBox(
+          width: 40,
+          height: 40,
+          child: Image.network(  // Ceci utilisera l'Image de Flutter
+            spotifyTrack.album!.images!.first.url!,
+            fit: BoxFit.cover,
+          ),
+        )
+            : const Icon(Icons.music_note),
+        title: Text(spotifyTrack.name ?? 'Sans titre'),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              spotifyTrack.artists?.map((a) => a.name).join(', ') ?? '',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
-        ).toList(),
+            if (track.tags.isNotEmpty)
+              Wrap(
+                spacing: 4,
+                children: track.tags.map((tag) => ActionChip(
+                  label: Text(tag.name),
+                  backgroundColor: tag.color,
+                  labelStyle: const TextStyle(color: Colors.white),
+                  onPressed: () => onTagTap(tag),
+                )).toList(),
+              ),
+          ],
+        ),
+        trailing: Text(_formatDuration(track.duration)),
       ),
-      trailing: Text(_formatDuration(track.duration)),
+      loading: () => const ListTile(
+        leading: CircularProgressIndicator(),
+        title: Text('Chargement...'),
+      ),
+      error: (error, stack) => ListTile(
+        leading: const Icon(Icons.error),
+        title: Text('Erreur: $error'),
+      ),
     );
   }
 
@@ -427,6 +455,7 @@ class _TrackListItem extends StatelessWidget {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 }
+
 class AddTracksDialogState extends ConsumerState<AddTracksDialog> {
   late Set<String> _selectedTrackIds;
   String _searchQuery = '';
@@ -437,7 +466,7 @@ class AddTracksDialogState extends ConsumerState<AddTracksDialog> {
     _selectedTrackIds = Set.from(widget.selectedTracks);
   }
 
-  List<Track> get _filteredTracks {
+  List<spotify.Track> get _filteredTracks {
     if (_searchQuery.trim().isEmpty) return widget.availableTracks;
 
     final queries = _searchQuery.toLowerCase().trim().split(' ')
@@ -462,11 +491,11 @@ class AddTracksDialogState extends ConsumerState<AddTracksDialog> {
   }
 
 // Ajout d'une méthode helper pour trier les résultats par pertinence
-  List<Track> _sortByRelevance(List<Track> tracks, String query) {
+  List<spotify.Track> _sortByRelevance(List<spotify.Track> tracks, String query) {
     final queryTerms = query.toLowerCase().trim().split(' ')
         .where((q) => q.isNotEmpty).toList();
 
-    return List<Track>.from(tracks)..sort((a, b) {
+    return List<spotify.Track>.from(tracks)..sort((a, b) {
       final aString = [
         a.name?.toLowerCase() ?? '',
         a.artists?.map((artist) => artist.name?.toLowerCase() ?? '').join(' ') ?? '',
@@ -491,7 +520,7 @@ class AddTracksDialogState extends ConsumerState<AddTracksDialog> {
   }
 
 // Méthode pour obtenir les résultats filtrés et triés
-  List<Track> getFilteredAndSortedTracks() {
+  List<spotify.Track> getFilteredAndSortedTracks() {
     final filtered = _filteredTracks;
     if (_searchQuery.trim().isEmpty) return filtered;
     return _sortByRelevance(filtered, _searchQuery);
@@ -636,7 +665,7 @@ class AddTracksDialogState extends ConsumerState<AddTracksDialog> {
 class TrackDetailsDialog extends ConsumerStatefulWidget {
   final MagicSet set;
   final TrackInfo trackInfo;
-  final Track spotifyTrack;
+  final spotify.Track spotifyTrack;
 
   const TrackDetailsDialog({
     Key? key,
