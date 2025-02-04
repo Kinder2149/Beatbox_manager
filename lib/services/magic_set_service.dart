@@ -100,6 +100,15 @@ class MagicSetService {
 
     await saveMagicSet(templateSet);
   }
+
+  Future<MagicSet> createFromTemplate(String templateId, String playlistId) async {
+    final template = await getSetById(templateId);
+    if (template == null) throw Exception('Template not found');
+
+    final newSet = MagicSet.fromTemplate(template, playlistId);
+    await saveMagicSet(newSet);
+    return newSet;
+  }
   Future<String> exportSet(String setId, ExportFormat format) async {
     final set = await getSetById(setId);
     if (set == null) throw Exception('Set not found');
@@ -268,14 +277,7 @@ class MagicSetService {
   }
 
   // Template Operations
-  Future<MagicSet> createFromTemplate(String templateId, String playlistId) async {
-    final template = await getSetById(templateId);
-    if (template == null) throw Exception('Template not found');
 
-    final newSet = MagicSet.fromTemplate(template, playlistId);
-    await saveMagicSet(newSet);
-    return newSet;
-  }
 
   // Utilitaire
   Future<MagicSet?> getSetById(String id) async {

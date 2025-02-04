@@ -38,7 +38,7 @@ class MagicSetsNotifier extends StateNotifier<AsyncValue<List<MagicSet>>> {
       state = const AsyncValue.loading();
       final sets = await _service.getCachedSets();
       if (mounted) {
-        state = AsyncValue.data(sets);
+        state = AsyncValue.data(sets.where((set) => set.tracks.isNotEmpty).toList());
       }
     } catch (e, stack) {
       if (mounted) {
@@ -60,34 +60,35 @@ class MagicSetsNotifier extends StateNotifier<AsyncValue<List<MagicSet>>> {
     }
   }
 
-  Future<void> createSet(String name, String playlistId, {String description = ''}) async {
+  Future<void> createSet(String name, String playlistId, {String description = '', MagicSet? template}) async {
     try {
       state = const AsyncValue.loading();
 
-      final newSet = MagicSet.create(
-        name: name,
-        playlistId: playlistId,
-        description: description,
-      );
+      MagicSet newSet;
+      if (template != null) {
+        newSet = template.createFromTemplate(playlistId);
+      } else {
+        newSet = MagicSet.create(
+          name: name,
+          playlistId: playlistId,
+          description: description,
+        );
+      }
 
-      // Validation avant sauvegarde
       newSet.validate();
-
       await _service.saveMagicSet(newSet);
 
-      // Mise à jour optimiste de l'état
       state.whenData((sets) {
         state = AsyncValue.data([...sets, newSet]);
       });
     } catch (e, stack) {
       state = AsyncValue.error(
-          e is ValidationException
-              ? e.message
-              : 'Erreur lors de la création: $e',
+          e is ValidationException ? e.message : 'Erreur lors de la création: $e',
           stack
       );
     }
   }
+
 // Dans lib/providers/magic_set_providers.dart
   final magicSetsProvider = StateNotifierProvider<MagicSetsNotifier, AsyncValue<List<MagicSet>>>((ref) {
     return MagicSetsNotifier(ref.watch(magicSetServiceProvider));

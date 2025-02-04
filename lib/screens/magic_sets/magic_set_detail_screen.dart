@@ -1,8 +1,4 @@
-// lib/screens/magic_sets/magic_set_detail_screen.dart - PARTIE 1
-
 import 'package:flutter/material.dart';
-
-
 import 'package:spotify/spotify.dart' as spotify hide Image;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/magic_set_models.dart';
@@ -12,8 +8,6 @@ import '../../widgets/unified_widgets.dart';
 import '../../providers/magic_set_providers.dart';
 import 'package:beatbox_manager/widgets/tag_details_dialog.dart';
 import 'package:beatbox_manager/config/routes.dart';
-
-
 
 class MagicSetDetailScreen extends ConsumerStatefulWidget {
   final MagicSet set;
@@ -103,7 +97,7 @@ class MagicSetDetailScreenState extends ConsumerState<MagicSetDetailScreen> {
       delegate: SliverChildListDelegate([
         _buildStats(context, set),
         _buildTagsList(context, set),
-        _buildTracksList(set.tracks), // Modifié ici : on passe juste les tracks
+        _buildTracksList(set.tracks),
       ]),
     );
   }
@@ -140,23 +134,13 @@ class MagicSetDetailScreenState extends ConsumerState<MagicSetDetailScreen> {
     );
   }
 
-  Widget _buildStatItem(BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
+  Widget _buildStatItem(BuildContext context, {required IconData icon, required String label, required String value}) {
     return Column(
       children: [
         Icon(icon, color: AppTheme.spotifyGreen),
         const SizedBox(height: 4),
-        Text(label, style: Theme
-            .of(context)
-            .textTheme
-            .bodySmall),
-        Text(value, style: Theme
-            .of(context)
-            .textTheme
-            .titleMedium),
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
+        Text(value, style: Theme.of(context).textTheme.titleMedium),
       ],
     );
   }
@@ -169,26 +153,20 @@ class MagicSetDetailScreenState extends ConsumerState<MagicSetDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Tags', style: Theme
-              .of(context)
-              .textTheme
-              .titleMedium),
+          Text('Tags', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
-            children: set.tags.map((tag) =>
-                Chip(
-                  label: Text(tag.name),
-                  backgroundColor: tag.color,
-                  labelStyle: const TextStyle(color: Colors.white),
-                )).toList(),
+            children: set.tags.map((tag) => Chip(
+              label: Text(tag.name),
+              backgroundColor: tag.color,
+              labelStyle: const TextStyle(color: Colors.white),
+            )).toList(),
           ),
         ],
       ),
     );
   }
-
-  // Dans lib/screens/magic_sets/magic_set_detail_screen.dart
 
   Widget _buildTracksList(List<TrackInfo> tracks) {
     return ListView.builder(
@@ -218,9 +196,7 @@ class MagicSetDetailScreenState extends ConsumerState<MagicSetDetailScreen> {
                   children: [
                     // Tags
                     if (track.tags.isNotEmpty) ...[
-                      const Text('Tags:',
-                          style: TextStyle(fontWeight: FontWeight.bold)
-                      ),
+                      const Text('Tags:', style: TextStyle(fontWeight: FontWeight.bold)),
                       Wrap(
                         spacing: 8,
                         children: track.tags.map((tag) => Chip(
@@ -234,37 +210,27 @@ class MagicSetDetailScreenState extends ConsumerState<MagicSetDetailScreen> {
 
                     // Notes
                     if (track.notes.isNotEmpty) ...[
-                      const Text('Notes:',
-                          style: TextStyle(fontWeight: FontWeight.bold)
-                      ),
+                      const Text('Notes:', style: TextStyle(fontWeight: FontWeight.bold)),
                       Text(track.notes),
                       const SizedBox(height: 8),
                     ],
 
                     // Métadonnées
                     if (track.customMetadata.isNotEmpty) ...[
-                      const Text('Métadonnées:',
-                          style: TextStyle(fontWeight: FontWeight.bold)
-                      ),
-                      ...track.customMetadata.entries.map((entry) =>
-                          Padding(
-                            padding: const EdgeInsets.only(left: 8.0),
-                            child: Row(
-                              children: [
-                                Text('${entry.key}: ',
-                                    style: const TextStyle(fontWeight: FontWeight.w500)
-                                ),
-                                Text(entry.value.toString()),
-                              ],
-                            ),
-                          ),
-                      ),
+                      const Text('Métadonnées:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ...track.customMetadata.entries.map((entry) => Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Row(
+                          children: [
+                            Text('${entry.key}: ', style: const TextStyle(fontWeight: FontWeight.w500)),
+                            Text(entry.value.toString()),
+                          ],
+                        ),
+                      )),
                     ],
 
                     // Durée et autres informations
-                    if (track.duration != Duration.zero ||
-                        track.bpm != null ||
-                        track.key != null) ...[
+                    if (track.duration != Duration.zero || track.bpm != null || track.key != null) ...[
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -307,6 +273,7 @@ class MagicSetDetailScreenState extends ConsumerState<MagicSetDetailScreen> {
       builder: (context) => TagDetailsDialog(tag: tag),
     );
   }
+
   void _showAddTracksDialog(BuildContext context, MagicSet set) async {
     final availableTracks = await ref.read(spotifyServiceProvider).spotify!.playlists
         .getTracksByPlaylistId(set.playlistId)
@@ -341,7 +308,7 @@ class MagicSetDetailScreenState extends ConsumerState<MagicSetDetailScreen> {
           ListTile(
             leading: const Icon(Icons.save),
             title: const Text('Sauvegarder comme template'),
-            onTap: () async { // Au lieu de onPressed
+            onTap: () async {
               Navigator.pop(context);
               await ref.read(magicSetsProvider.notifier).saveAsTemplate(set.id);
               ScaffoldMessenger.of(context).showSnackBar(
@@ -372,12 +339,10 @@ class MagicSetDetailScreenState extends ConsumerState<MagicSetDetailScreen> {
         title: const Text('Exporter'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: ExportFormat.values.map((format) =>
-              ListTile(
-                title: Text(format.toString().split('.').last),
-                onTap: () => _exportSet(context, set, format),
-              ),
-          ).toList(),
+          children: ExportFormat.values.map((format) => ListTile(
+            title: Text(format.toString().split('.').last),
+            onTap: () => _exportSet(context, set, format),
+          )).toList(),
         ),
       ),
     );
@@ -385,7 +350,7 @@ class MagicSetDetailScreenState extends ConsumerState<MagicSetDetailScreen> {
 
   Future<void> _exportSet(BuildContext context, MagicSet set, ExportFormat format) async {
     try {
-      Navigator.pop(context); // Ferme le dialogue d'export
+      Navigator.pop(context);
       final result = await ref.read(magicSetsProvider.notifier).exportSet(set.id, format);
 
       if (!mounted) return;
@@ -414,16 +379,14 @@ class MagicSetDetailScreenState extends ConsumerState<MagicSetDetailScreen> {
             child: const Text('Annuler'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red, // Au lieu de primary
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               await ref.read(magicSetsProvider.notifier).deleteSet(set.id);
 
               if (!mounted) return;
 
-              Navigator.pop(context); // Ferme la confirmation
-              Navigator.pop(context); // Retourne à la liste des sets
+              Navigator.pop(context);
+              Navigator.pop(context);
 
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Magic Set supprimé')),
@@ -449,7 +412,7 @@ class MagicSetDetailScreenState extends ConsumerState<MagicSetDetailScreen> {
 }
 class AddTracksDialog extends ConsumerStatefulWidget {
   final MagicSet currentSet;
-  final List<spotify.Track> availableTracks;  // Ajoutez spotify.
+  final List<spotify.Track> availableTracks;
   final Set<String> selectedTracks;
 
   const AddTracksDialog({
@@ -461,74 +424,6 @@ class AddTracksDialog extends ConsumerStatefulWidget {
 
   @override
   AddTracksDialogState createState() => AddTracksDialogState();
-}
-// Ajouter d'abord une classe TrackListItem qu'il manquait :
-class _TrackListItem extends ConsumerWidget {
-  final TrackInfo track;
-  final VoidCallback onTap;
-  final Function(Tag) onTagTap;
-
-  const _TrackListItem({
-    required this.track,
-    required this.onTap,
-    required this.onTagTap,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final trackData = ref.watch(spotifyTrackProvider(track.trackId));
-
-    return trackData.when(
-      data: (spotifyTrack) => ListTile(
-        onTap: onTap,
-        leading: spotifyTrack.album?.images?.isNotEmpty ?? false
-            ? SizedBox(
-          width: 40,
-          height: 40,
-          child: Image.network(  // Ceci utilisera l'Image de Flutter
-            spotifyTrack.album!.images!.first.url!,
-            fit: BoxFit.cover,
-          ),
-        )
-            : const Icon(Icons.music_note),
-        title: Text(spotifyTrack.name ?? 'Sans titre'),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              spotifyTrack.artists?.map((a) => a.name).join(', ') ?? '',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            if (track.tags.isNotEmpty)
-              Wrap(
-                spacing: 4,
-                children: track.tags.map((tag) => ActionChip(
-                  label: Text(tag.name),
-                  backgroundColor: tag.color,
-                  labelStyle: const TextStyle(color: Colors.white),
-                  onPressed: () => onTagTap(tag),
-                )).toList(),
-              ),
-          ],
-        ),
-        trailing: Text(_formatDuration(track.duration)),
-      ),
-      loading: () => const ListTile(
-        leading: CircularProgressIndicator(),
-        title: Text('Chargement...'),
-      ),
-      error: (error, stack) => ListTile(
-        leading: const Icon(Icons.error),
-        title: Text('Erreur: $error'),
-      ),
-    );
-  }
-
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
 }
 
 class AddTracksDialogState extends ConsumerState<AddTracksDialog> {
@@ -544,15 +439,13 @@ class AddTracksDialogState extends ConsumerState<AddTracksDialog> {
   List<spotify.Track> get _filteredTracks {
     if (_searchQuery.trim().isEmpty) return widget.availableTracks;
 
-    final queries = _searchQuery.toLowerCase().trim().split(' ')
-        .where((q) => q.isNotEmpty).toList();
+    final queries = _searchQuery.toLowerCase().trim().split(' ').where((q) => q.isNotEmpty).toList();
 
     return widget.availableTracks.where((track) {
       if (track.id == null) return false;
 
-      // Construction sécurisée de la chaîne de recherche
       final searchTerms = [
-        track.name?.toLowerCase() ?? '', // Utilisation de ?. pour gérer le null
+        track.name?.toLowerCase() ?? '',
         track.artists?.map((a) => a.name?.toLowerCase() ?? '').join(' ') ?? '',
         track.album?.name?.toLowerCase() ?? '',
         track.id?.toLowerCase() ?? '',
@@ -560,46 +453,10 @@ class AddTracksDialogState extends ConsumerState<AddTracksDialog> {
 
       final searchString = searchTerms.join(' ');
 
-      // Vérifie si tous les termes de recherche sont présents
       return queries.every((query) => searchString.contains(query));
     }).toList();
   }
 
-// Ajout d'une méthode helper pour trier les résultats par pertinence
-  List<spotify.Track> _sortByRelevance(List<spotify.Track> tracks, String query) {
-    final queryTerms = query.toLowerCase().trim().split(' ')
-        .where((q) => q.isNotEmpty).toList();
-
-    return List<spotify.Track>.from(tracks)..sort((a, b) {
-      final aString = [
-        a.name?.toLowerCase() ?? '',
-        a.artists?.map((artist) => artist.name?.toLowerCase() ?? '').join(' ') ?? '',
-      ].join(' ');
-
-      final bString = [
-        b.name?.toLowerCase() ?? '',
-        b.artists?.map((artist) => artist.name?.toLowerCase() ?? '').join(' ') ?? '',
-      ].join(' ');
-
-      // Calcul du score de pertinence
-      int aScore = queryTerms.where((term) => aString.contains(term)).length;
-      int bScore = queryTerms.where((term) => bString.contains(term)).length;
-
-      // Si les scores sont égaux, trie par nom
-      if (aScore == bScore) {
-        return (a.name ?? '').compareTo(b.name ?? '');
-      }
-
-      return bScore.compareTo(aScore); // Ordre décroissant
-    });
-  }
-
-// Méthode pour obtenir les résultats filtrés et triés
-  List<spotify.Track> getFilteredAndSortedTracks() {
-    final filtered = _filteredTracks;
-    if (_searchQuery.trim().isEmpty) return filtered;
-    return _sortByRelevance(filtered, _searchQuery);
-  }
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -680,7 +537,7 @@ class AddTracksDialogState extends ConsumerState<AddTracksDialog> {
                     dense: true,
                   );
                 },
-              )
+              ),
             ),
           ],
         ),
@@ -736,7 +593,6 @@ class AddTracksDialogState extends ConsumerState<AddTracksDialog> {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 }
-
 class TrackDetailsDialog extends ConsumerStatefulWidget {
   final MagicSet set;
   final TrackInfo trackInfo;
@@ -814,6 +670,7 @@ class TrackDetailsDialogState extends ConsumerState<TrackDetailsDialog> {
       ],
     );
   }
+
   Widget _buildSpotifyInfo() {
     final track = widget.spotifyTrack;
     return Column(
