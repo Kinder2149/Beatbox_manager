@@ -47,9 +47,10 @@ class UnifiedCacheService {
   static const String _playlistsCacheKey = 'playlists_cache_v2';
   static const String _likedTracksCacheKey = 'liked_tracks_cache_v2';
   static const String _playlistTracksCachePrefix = 'playlist_tracks_v2_';
-  static const String _magicSetsCacheKey = 'magic_sets_cache_v1';
   static const String _tagsCacheKey = 'tags_cache_v1';
-  static const String _templatesCacheKey = 'templates_cache_v1';
+  static const String _setsCachePrefix = 'magic_set_';
+  static const String _localChangesCachePrefix = 'local_changes_';
+  static const String _magicSetsCacheKey = 'magic_sets_cache';
 
   final CacheConfig config;
   final Map<String, CacheEntry<dynamic>> _memoryCache = {};
@@ -60,6 +61,12 @@ class UnifiedCacheService {
     this.config = const CacheConfig(),
   }) {
     _initialize();
+  }
+  Future<void> remove(String key) async {
+    // Implémentation selon votre système de cache
+    // Par exemple avec SharedPreferences :
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(key);
   }
 
   Future<void> _initialize() async {
@@ -191,6 +198,7 @@ class UnifiedCacheService {
   }
   Future<void> cacheMagicSets(List<MagicSet> sets) async {
     await set(_magicSetsCacheKey, sets.map((s) => s.toJson()).toList());
+    await set('${_magicSetsCacheKey}_lastUpdate', DateTime.now().toIso8601String());
   }
 
   Future<List<MagicSet>?> getCachedMagicSets() async {
@@ -283,23 +291,14 @@ class UnifiedCacheService {
   }
 
   Future<void> clearCache() async {
-    _memoryCache.clear();
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((key) =>
+    key.startsWith(_setsCachePrefix) ||
+        key.startsWith(_localChangesCachePrefix)
+    );
 
-    if (config.persistToStorage && _prefs != null) {
-      // Utiliser un List.from pour convertir et filtrer
-      final playlistTrackKeys = List.from(_prefs!.getKeys())
-          .where((key) => key.startsWith(_playlistTracksCachePrefix))
-          .toList();
-
-      // Créer une liste de futures pour l'opération de suppression
-      final removeFutures = [
-        _prefs!.remove(_playlistsCacheKey),
-        _prefs!.remove(_likedTracksCacheKey),
-        ...playlistTrackKeys.map((key) => _prefs!.remove(key))
-      ];
-
-      // Attendre toutes les futures
-      await Future.wait(removeFutures.whereType<Future<bool>>());
+    for (final key in keys) {
+      await prefs.remove(key);
     }
   }
 

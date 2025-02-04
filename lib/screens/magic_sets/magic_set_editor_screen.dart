@@ -1,17 +1,16 @@
 // lib/screens/magic_sets/magic_set_editor_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotify/spotify.dart';
+
 import '../../models/magic_set_models.dart';
 import '../../providers/unified_providers.dart';
+import '../../providers/magic_set_providers.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/unified_widgets.dart';
-import 'package:spotify/spotify.dart';
-import 'package:beatbox_manager/providers/magic_set_providers.dart';
-import 'package:beatbox_manager/utils/unified_utils.dart';
-import 'package:flutter/foundation.dart' show listEquals;
 import '../../utils/unified_utils.dart';
-
+import '../../widgets/unified_widgets.dart';
 
 
 class MagicSetEditorScreen extends ConsumerStatefulWidget {

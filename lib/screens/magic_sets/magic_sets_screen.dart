@@ -43,9 +43,12 @@ class MagicSetsScreen extends ConsumerStatefulWidget {
 }
 
 class MagicSetsScreenState extends ConsumerState<MagicSetsScreen> {
+  static const int _itemsPerPage = 20;
+  bool _isLoading = false;
+
   @override
   Widget build(BuildContext context) {
-    final magicSets = ref.watch(magicSetsProvider);
+    final magicSetsState = ref.watch(magicSetsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -55,21 +58,31 @@ class MagicSetsScreenState extends ConsumerState<MagicSetsScreen> {
             icon: const Icon(Icons.local_offer),
             onPressed: () => Navigator.pushNamed(context, '/tag-manager'),
           ),
+          IconButton(
+            icon: const Icon(Icons.bookmark_outline),
+            onPressed: _showTemplatesManager,
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: magicSetsState.syncInfo.isSyncing
+                ? null
+                : () => ref.read(magicSetsProvider.notifier).refreshSets(),
+          ),
         ],
       ),
       body: Container(
         decoration: AppTheme.gradientBackground,
-        child: magicSets.when(
+        child: magicSetsState.sets.when(
           data: (sets) => sets.isEmpty
               ? _buildEmptyState()
-              : _buildSetsList(sets),
+              : _buildSetsList(sets, magicSetsState.pagination),
           loading: () => const LoadingIndicator(
             message: 'Chargement des Magic Sets...',
           ),
           error: (error, stack) => ErrorDisplay(
             message: 'Erreur: $error',
             onRetry: () => ref.refresh(magicSetsProvider),
-            onBack: () => Navigator.pop(context), // Ajout du paramètre manquant
+            onBack: () => Navigator.pop(context),
           ),
         ),
       ),
@@ -77,6 +90,47 @@ class MagicSetsScreenState extends ConsumerState<MagicSetsScreen> {
         onPressed: _showCreateSetDialog,
         child: const Icon(Icons.add),
         backgroundColor: AppTheme.spotifyGreen,
+      ),
+    );
+  }
+  Future<void> _loadMoreSets() async {
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(magicSetsProvider.notifier).loadMoreSets();
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Widget _buildSetsList(List<MagicSet> sets, PaginationInfo pagination) {
+    return RefreshIndicator(
+      onRefresh: () => ref.read(magicSetsProvider.notifier).refreshSets(),
+      child: ListView.builder(
+        itemCount: sets.length + (pagination.hasReachedEnd ? 0 : 1),
+        itemBuilder: (context, index) {
+          if (index >= sets.length) {
+            if (!_isLoading) {
+              _loadMoreSets();
+            }
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+
+          final set = sets[index];
+          return MagicSetCard(
+            set: set,
+            onTap: () => _navigateToSetDetail(set),
+            onTemplateAction: set.isTemplate ? (action) => _handleTemplateAction(action, set) : null,
+          );
+        },
       ),
     );
   }
@@ -414,22 +468,6 @@ class MagicSetsScreenState extends ConsumerState<MagicSetsScreen> {
     );
   }
 
-  Widget _buildSetsList(List<MagicSet> sets) {
-    return ListView.builder(
-      itemCount: sets.length,
-      itemBuilder: (context, index) {
-        final set = sets[index];
-        return MagicSetCard(
-          set: set,
-          onTap: () => Navigator.pushNamed(
-            context,
-            '/magic-set-detail',
-            arguments: set,
-          ),
-        );
-      },
-    );
-  }
 
 
   Future<void> _showCreateTemplateDialog() async {
@@ -482,11 +520,13 @@ class MagicSetsScreenState extends ConsumerState<MagicSetsScreen> {
 class MagicSetCard extends StatelessWidget {
   final MagicSet set;
   final VoidCallback onTap;
+  final Function(String)? onTemplateAction;
 
   const MagicSetCard({
     Key? key,
     required this.set,
     required this.onTap,
+    this.onTemplateAction,
   }) : super(key: key);
 
   @override
@@ -520,33 +560,40 @@ class MagicSetCard extends StatelessWidget {
                 const SizedBox(width: 16),
                 Icon(Icons.local_offer, size: 16, color: Colors.grey[600]),
                 Text(' ${set.tags.length}'),
+                if (set.metadata.isNotEmpty) ...[
+                  const SizedBox(width: 16),
+                  Icon(Icons.settings, size: 16, color: Colors.grey[600]),
+                  Text(' ${set.metadata.length}'),
+                ],
               ],
             ),
           ],
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (set.isTemplate)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.blueGrey,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'Template',
-                  style: TextStyle(color: Colors.white, fontSize: 12),
-                ),
-              ),
-            const SizedBox(width: 8),
-            const Icon(Icons.chevron_right),
+        trailing: set.isTemplate
+            ? PopupMenuButton<String>(
+          onSelected: onTemplateAction,
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'use',
+              child: Text('Utiliser'),
+            ),
+            const PopupMenuItem(
+              value: 'edit',
+              child: Text('Modifier'),
+            ),
+            const PopupMenuItem(
+              value: 'delete',
+              child: Text('Supprimer'),
+            ),
           ],
-        ),
+        )
+            : const Icon(Icons.chevron_right),
       ),
     );
   }
 }
+
+
 
 class CreateSetDialog extends ConsumerStatefulWidget {
   final List<PlaylistSimple> playlists;
@@ -566,7 +613,6 @@ class CreateSetDialogState extends ConsumerState<CreateSetDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
-  String? _selectedPlaylistId;
   PlaylistSimple? _selectedPlaylist;
   MagicSet? _selectedTemplate;
   bool _isLoading = false;
@@ -595,7 +641,6 @@ class CreateSetDialogState extends ConsumerState<CreateSetDialog> {
                 onChanged: (playlist) {
                   setState(() {
                     _selectedPlaylist = playlist;
-                    _selectedPlaylistId = playlist?.id;
                     if (playlist != null && _nameController.text.isEmpty) {
                       _nameController.text = "Magic Set - ${playlist.name}";
                     }
@@ -605,7 +650,30 @@ class CreateSetDialogState extends ConsumerState<CreateSetDialog> {
               ),
               const SizedBox(height: 16),
 
-              // Champ nom
+              // Sélection du template (optionnel)
+              if (widget.templates.isNotEmpty)
+                DropdownButtonFormField<MagicSet>(
+                  value: _selectedTemplate,
+                  decoration: const InputDecoration(
+                    labelText: 'Template (optionnel)',
+                    hintText: 'Sélectionner un template',
+                  ),
+                  items: widget.templates.map((template) => DropdownMenuItem(
+                    value: template,
+                    child: Text(template.name),
+                  )).toList(),
+                  onChanged: (template) {
+                    setState(() {
+                      _selectedTemplate = template;
+                      if (template != null) {
+                        _nameController.text = template.name;
+                        _descriptionController.text = template.description;
+                      }
+                    });
+                  },
+                ),
+
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -615,8 +683,6 @@ class CreateSetDialogState extends ConsumerState<CreateSetDialog> {
                 validator: (value) => value?.isEmpty ?? true ? 'Le nom est requis' : null,
               ),
               const SizedBox(height: 16),
-
-              // Champ description
               TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(
@@ -648,62 +714,31 @@ class CreateSetDialogState extends ConsumerState<CreateSetDialog> {
     );
   }
 
-  // Dans CreateSetDialogState
   Future<void> _createMagicSet() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      // 1. Créer le Magic Set de base
-      final newSet = MagicSet.create(
+      final result = CreateSetResult(
         name: _nameController.text,
-        playlistId: _selectedPlaylistId!,
+        playlistId: _selectedPlaylist!.id!,
         description: _descriptionController.text,
+        template: _selectedTemplate,
       );
 
-      // 2. Récupérer la playlist complète
-      final spotify = ref.read(spotifyServiceProvider);
-      final playlistTracks = await spotify.spotify!.playlists
-          .getTracksByPlaylistId(_selectedPlaylistId!)
-          .all()
-          .then((pages) => pages.toList());
-
-      // 3. Créer un seul Magic Set avec toutes les tracks
-      MagicSet updatedSet = newSet;
-      for (final track in playlistTracks) {
-        // Le track est déjà un Track, pas besoin de .track
-        if (track.id != null) {
-          updatedSet = updatedSet.addTrack(
-            TrackInfo(
-              trackId: track.id!,
-              duration: Duration(milliseconds: track.duration?.inMilliseconds ?? 0),
-            ),
-          );
-        }
-      }
-
-      // 4. Sauvegarder le Magic Set
-      await ref.read(magicSetsProvider.notifier).addSet(updatedSet);
-
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Magic Set créé avec succès')),
-        );
-      }
+      Navigator.pop(context, result);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la création: $e')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e')),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
   }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -745,26 +780,21 @@ class SelectPlaylistDialog extends StatelessWidget {
       ],
     );
   }
-
 }
-class CreateTemplateDialog extends StatefulWidget {
+
+
+class CreateTemplateDialog extends ConsumerStatefulWidget {
   const CreateTemplateDialog({Key? key}) : super(key: key);
 
   @override
   CreateTemplateDialogState createState() => CreateTemplateDialogState();
 }
 
-class CreateTemplateDialogState extends State<CreateTemplateDialog> {
+class CreateTemplateDialogState extends ConsumerState<CreateTemplateDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
-  }
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -802,22 +832,62 @@ class CreateTemplateDialogState extends State<CreateTemplateDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
           child: const Text('Annuler'),
         ),
         ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              Navigator.pop(context, {
-                'name': _nameController.text,
-                'description': _descriptionController.text,
-              });
-            }
-          },
-          child: const Text('Créer'),
+          onPressed: _isLoading ? null : _createTemplate,
+          child: _isLoading
+              ? const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+              : const Text('Créer'),
         ),
       ],
     );
+  }
+
+  Future<void> _createTemplate() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final template = MagicSet.createTemplate(
+        name: _nameController.text,
+        description: _descriptionController.text,
+      );
+
+      await ref.read(magicSetsProvider.notifier).addSet(template);
+
+      if (mounted) {
+        Navigator.pop(context);
+        Navigator.pushNamed(
+          context,
+          '/template-editor',
+          arguments: template,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
   }
 }
 class CreateMagicSetDialog extends ConsumerStatefulWidget {
@@ -928,4 +998,17 @@ class CreateMagicSetDialogState extends ConsumerState<CreateMagicSetDialog> {
       }
     }
   }
+}
+class CreateSetResult {
+  final String name;
+  final String playlistId;
+  final String description;
+  final MagicSet? template;
+
+  CreateSetResult({
+    required this.name,
+    required this.playlistId,
+    this.description = '',
+    this.template,
+  });
 }

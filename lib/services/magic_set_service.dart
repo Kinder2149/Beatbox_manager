@@ -14,6 +14,9 @@ class MagicSetService {
   final UnifiedSpotifyService _spotifyService;
   static const String _magicSetsCacheKey = 'magic_sets_cache';
   static const String _tagsCacheKey = 'tags_cache';
+  static const String _setsCachePrefix = 'magic_set_';
+  static const String _localChangesCachePrefix = 'local_changes_';
+  static const String _lastUpdateKey = 'magic_sets_last_update';
   static const String _templatesCacheKey = 'templates_cache';
   static const _cacheValidityDuration = Duration(minutes: 30);
 
@@ -35,18 +38,156 @@ class MagicSetService {
   }
   Future<void> saveMagicSet(MagicSet set) async {
     try {
-      final sets = await getCachedSets();
-      final index = sets.indexWhere((s) => s.id == set.id);
-
-      if (index != -1) {
-        sets[index] = set;
-      } else {
-        sets.add(set);
-      }
-
-      await _cacheService.cacheMagicSets(sets);
+      await cacheSet(set);  // Utilise le nouveau système de cache
     } catch (e) {
       print('Erreur lors de la sauvegarde du magic set: $e');
+      rethrow;
+    }
+  }
+  Future<List<MagicSet>> getPaginatedSets({
+    required int offset,
+    required int limit,
+    bool forceRefresh = false,
+  }) async {
+    try {
+      final setIds = await _getCachedSetIds();
+      final paginatedIds = setIds.skip(offset).take(limit).toList();
+
+      List<MagicSet> results = [];
+      List<String> missingIds = [];
+
+      // Vérifier d'abord les modifications locales
+      for (final id in paginatedIds) {
+        final localSet = await _getLocalChanges(id);
+        if (localSet != null) {
+          results.add(localSet);
+          continue;
+        }
+
+        final cachedSet = await _getCachedSet(id);
+        if (cachedSet != null && !forceRefresh) {
+          results.add(cachedSet);
+        } else {
+          missingIds.add(id);
+        }
+      }
+
+      // Récupérer uniquement les données manquantes depuis Spotify
+      if (missingIds.isNotEmpty) {
+        final spotifySets = await _fetchSetsFromSpotify(missingIds);
+        for (final set in spotifySets) {
+          await cacheSet(set);
+          results.add(set);
+        }
+      }
+
+      return results;
+    } catch (e) {
+      print('Erreur lors de la récupération des sets paginés: $e');
+      rethrow;
+    }
+  }
+  Future<List<MagicSet>> _fetchSetsFromSpotify(List<String> ids) async {
+    final results = <MagicSet>[];
+
+    for (final id in ids) {
+      final localSet = await _getLocalChanges(id);
+      if (localSet?.playlistId != null) {
+        final playlist = await _spotifyService.spotify!.playlists.get(localSet!.playlistId!);
+
+        final set = MagicSet.create(
+          name: playlist.name ?? 'Sans nom',
+          playlistId: playlist.id,
+          description: playlist.description ?? '',
+        );
+
+        results.add(set);
+      }
+    }
+
+    return results;
+  }
+  Future<void> cleanCache() async {
+    final lastModified = await _getLastModifiedMap();
+    final now = DateTime.now();
+
+    for (final entry in lastModified.entries) {
+      if (now.difference(entry.value) > _cacheValidityDuration) {
+        // Ne pas supprimer les modifications locales
+        final cacheKey = '$_setsCachePrefix${entry.key}';
+        await _cacheService.remove(cacheKey);
+      }
+    }
+  }
+
+  Future<bool> needsUpdate(String setId) async {
+    final lastModified = (await _getLastModifiedMap())[setId];
+    if (lastModified == null) return true;
+
+    return DateTime.now().difference(lastModified) > _cacheValidityDuration;
+  }
+  Future<void> _saveLocalChanges(MagicSet set) async {
+    final key = '$_localChangesCachePrefix${set.id}';
+    await _cacheService.set(key, set.toJson());
+  }
+  Future<MagicSet?> _getLocalChanges(String setId) async {
+    final key = '$_localChangesCachePrefix$setId';
+    final cached = await _cacheService.get<Map<String, dynamic>>(key);
+    if (cached != null) {
+      return MagicSet.fromJson(cached);
+    }
+    return null;
+  }
+
+
+  Future<bool> isCacheValid() async {
+    try {
+      final lastUpdate = await _cacheService.get<String>(
+          '${_magicSetsCacheKey}_lastUpdate'
+      );
+
+      if (lastUpdate == null) return false;
+
+      final lastUpdateTime = DateTime.parse(lastUpdate);
+      return DateTime.now().difference(lastUpdateTime) < _cacheValidityDuration;
+    } catch (e) {
+      print('Erreur lors de la vérification du cache: $e');
+      return false;
+    }
+  }
+
+  Future<void> synchronizeWithSpotify(String setId) async {
+    try {
+      final set = await getSetById(setId);
+      if (set == null || set.playlistId == null) {
+        throw Exception('Set invalide ou sans playlist ID');
+      }
+
+      final spotifyTracks = await _spotifyService.getPlaylistTracks(set.playlistId!);
+
+      final syncedSet = set.copyWith(
+        tracks: spotifyTracks.map((track) {
+          final existingTrack = set.tracks.firstWhereOrNull(
+                  (t) => t.trackId == track.id!
+          );
+
+          return TrackInfo(
+            trackId: track.id!, // Non-null assertion car filtré dans getPlaylistTracks
+            notes: existingTrack?.notes ?? '',
+            tags: existingTrack?.tags ?? [],
+            duration: Duration(milliseconds: track.durationMs ?? 0),
+            key: '', // À adapter selon vos besoins
+            bpm: 0,  // À adapter selon vos besoins
+            customFields: existingTrack?.customFields ?? {},
+            customMetadata: existingTrack?.customMetadata ?? {},
+          );
+        }).toList(),
+        updatedAt: DateTime.now(),
+      );
+
+      await saveMagicSet(syncedSet);
+    } catch (e) {
+      print('Erreur lors de la synchronisation: $e');
       rethrow;
     }
   }
@@ -292,21 +433,45 @@ class MagicSetService {
   // Cache Operations
   Future<List<MagicSet>> getCachedSets() async {
     try {
-      final cached = await _cacheService.get<List<dynamic>>(_magicSetsCacheKey);
-      if (cached != null) {
-        // Vérification de la validité du cache
-        final lastUpdate = await _cacheService.get<String>('${_magicSetsCacheKey}_lastUpdate');
-        if (lastUpdate != null) {
-          final lastUpdateTime = DateTime.parse(lastUpdate);
-          if (DateTime.now().difference(lastUpdateTime) < _cacheValidityDuration) {
-            return cached.map((json) => MagicSet.fromJson(json)).toList();
+      final setIds = await _getCachedSetIds();
+      List<MagicSet> sets = [];
+
+      for (final id in setIds) {
+        final localSet = await _getLocalChanges(id);
+        if (localSet != null) {
+          sets.add(localSet);
+        } else {
+          final cachedSet = await _getCachedSet(id);
+          if (cachedSet != null) {
+            sets.add(cachedSet);
           }
         }
       }
-      return await _fetchAndCacheSets();
+
+      return sets;
     } catch (e) {
       print('Erreur de cache: $e');
       return [];
+    }
+  }
+  Future<void> initialSyncWithSpotify() async {
+    try {
+      final playlists = await _spotifyService.spotify!.playlists.me.all();
+
+      for (final playlist in playlists.where((p) => p.id != null)) {
+        final existingSet = await _getCachedSet(playlist.id!);
+        if (existingSet == null) {
+          final newSet = MagicSet.create(
+            name: playlist.name ?? 'Sans nom',
+            playlistId: playlist.id!,
+            description: playlist.description ?? '',
+          );
+          await cacheSet(newSet);
+        }
+      }
+    } catch (e) {
+      print('Erreur lors de la synchronisation initiale: $e');
+      rethrow;
     }
   }
   Future<List<MagicSet>> _fetchAndCacheSets() async {
@@ -332,8 +497,55 @@ class MagicSetService {
   }
 
 
+  Future<void> cacheSet(MagicSet set) async {
+    // Sauvegarder les modifications locales
+    await _saveLocalChanges(set);
+
+    final key = '$_setsCachePrefix${set.id}';
+    await _cacheService.set(key, set.toJson());
+
+    final setIds = await _getCachedSetIds();
+    if (!setIds.contains(set.id)) {
+      setIds.add(set.id);
+      await _cacheService.set(_magicSetsCacheKey, setIds);
+    }
+
+    await _updateLastModified(set.id);
+  }
+
+  Future<List<String>> _getCachedSetIds() async {
+    final cached = await _cacheService.get<List<dynamic>>(_magicSetsCacheKey);
+    return (cached ?? []).map((e) => e.toString()).toList();
+  }
+
+  Future<void> _updateLastModified(String setId) async {
+    final lastModifiedMap = await _getLastModifiedMap();
+    lastModifiedMap[setId] = DateTime.now();
+    await _cacheService.set(_lastUpdateKey, lastModifiedMap);
+  }
+
   Future<void> _cacheSets(List<MagicSet> sets) async {
-    await _cacheService.set(_magicSetsCacheKey, sets.map((s) => s.toJson()).toList());
+    await _cacheService.set(_magicSetsCacheKey,
+        sets.map((s) => s.toJson()).toList()
+    );
+  }
+
+  Future<MagicSet?> _getCachedSet(String setId) async {
+    final key = '$_setsCachePrefix$setId';
+    final cached = await _cacheService.get<Map<String, dynamic>>(key);
+    if (cached != null) {
+      return MagicSet.fromJson(cached);
+    }
+    return null;
+  }
+  Future<Map<String, DateTime>> _getLastModifiedMap() async {
+    final cached = await _cacheService.get<Map<String, dynamic>>(_lastUpdateKey);
+    if (cached == null) return {};
+
+    return cached.map((key, value) => MapEntry(
+      key,
+      DateTime.parse(value.toString()),
+    ));
   }
 
   Future<List<Tag>> _getCachedTags() async {

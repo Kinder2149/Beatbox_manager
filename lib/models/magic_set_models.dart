@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:spotify/spotify.dart';
 import 'package:beatbox_manager/utils/unified_utils.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 part 'magic_set_models.freezed.dart';
 part 'magic_set_models.g.dart';
@@ -34,6 +35,49 @@ class DurationConverter implements JsonConverter<Duration, int> {
 
   @override
   int toJson(Duration duration) => duration.inMilliseconds;
+}
+@freezed
+class PaginationInfo with _$PaginationInfo {
+  const factory PaginationInfo({
+    @Default(0) int currentPage,
+    @Default(20) int itemsPerPage,
+    @Default(false) bool hasReachedEnd,
+    @Default(0) int totalItems,
+  }) = _PaginationInfo;
+}
+
+@freezed
+class SyncInfo with _$SyncInfo {
+  const factory SyncInfo({
+    @Default(false) bool isSyncing,
+    DateTime? lastSync,
+    @Default({}) Map<String, DateTime> lastSetSync,
+  }) = _SyncInfo;
+}
+
+@freezed
+class MagicSetState with _$MagicSetState {
+  const factory MagicSetState({
+    @Default(AsyncValue<List<MagicSet>>.loading()) AsyncValue<List<MagicSet>> sets,
+    @Default(AsyncValue<List<MagicSet>>.loading()) AsyncValue<List<MagicSet>> templates,
+    @Default(PaginationInfo()) PaginationInfo pagination,
+    @Default(SyncInfo()) SyncInfo syncInfo,
+    String? error,
+  }) = _MagicSetState;
+
+  const MagicSetState._();
+
+  T when<T>({
+    required T Function(List<MagicSet>) data,
+    required T Function() loading,
+    required T Function(Object error, StackTrace? stackTrace) error,
+  }) {
+    return sets.when(
+      data: data,
+      loading: loading,
+      error: error,
+    );
+  }
 }
 
 @freezed
@@ -88,6 +132,7 @@ class TrackInfo with _$TrackInfo {
   }
 }
 
+
 @freezed
 class MagicSet with _$MagicSet {
   const MagicSet._();
@@ -110,7 +155,6 @@ class MagicSet with _$MagicSet {
 
   factory MagicSet.fromJson(Map<String, dynamic> json) => _$MagicSetFromJson(json);
 
-  // Ajoutez cette factory
   factory MagicSet.createTemplate({
     required String name,
     String description = '',

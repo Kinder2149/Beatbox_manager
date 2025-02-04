@@ -15,6 +15,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 
 
+
+
 class UnifiedSpotifyService with ChangeNotifier {
   // Auth Properties
   SpotifyApi? _spotify;
@@ -70,7 +72,22 @@ class UnifiedSpotifyService with ChangeNotifier {
       rethrow;
     }
   }
-
+  Future<List<Track>> getPlaylistTracks(String playlistId) async {
+    try {
+      final pages = await spotify!.playlists.getTracksByPlaylistId(playlistId).all();
+      return pages
+          .where((item) => item is Track)
+          .map((item) {
+        if (item is Track) return item;
+        final trackItem = item as dynamic;
+        return trackItem.track as Track;
+      })
+          .toList();
+    } catch (e) {
+      print('Erreur lors de la récupération des pistes: $e');
+      return [];
+    }
+  }
   Future<void> _initializeFromPrefs(SharedPreferences prefs) async {
     try {
       final encryptedAccessToken = prefs.getString(_tokenKey);

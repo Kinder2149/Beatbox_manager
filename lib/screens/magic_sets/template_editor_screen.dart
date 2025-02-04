@@ -8,6 +8,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/unified_widgets.dart';
 import 'package:beatbox_manager/providers/magic_set_providers.dart';
 import 'package:beatbox_manager/utils/unified_utils.dart';
+import 'dart:async' show Timer;
 
 class TemplateEditorScreen extends ConsumerStatefulWidget {
   final MagicSet template;
@@ -27,6 +28,7 @@ class TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
   late List<Tag> _selectedTags;
   late Map<String, dynamic> _metadata;
   bool _hasUnsavedChanges = false;
+  Timer? _autoSaveTimer;
 
   @override
   void initState() {
@@ -35,10 +37,17 @@ class TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
     _descriptionController = TextEditingController(text: widget.template.description);
     _selectedTags = List.from(widget.template.tags);
     _metadata = Map.from(widget.template.metadata);
+    _autoSaveTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (_hasUnsavedChanges) {
+        _saveTemplate(showMessage: false);
+      }
+    });
   }
+
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     _nameController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -293,30 +302,44 @@ class TemplateEditorScreenState extends ConsumerState<TemplateEditorScreen> {
     return true;
   }
 
-  Future<void> _saveTemplate() async {
+  Future<void> _saveTemplate({bool showMessage = true}) async {
     try {
       final updatedTemplate = widget.template.copyWith(
-        name: _nameController.text,
-        description: _descriptionController.text,
+        name: _nameController.text.trim(),
+        description: _descriptionController.text.trim(),
         tags: _selectedTags,
         metadata: _metadata,
         updatedAt: DateTime.now(),
       );
 
+      // Valider le template
+      _validateTemplate(updatedTemplate);
+
       await ref.read(magicSetsProvider.notifier).updateSet(updatedTemplate);
 
       if (mounted) {
         setState(() => _hasUnsavedChanges = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Template sauvegardé avec succès')),
-        );
+        if (showMessage) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Template sauvegardé avec succès')),
+          );
+        }
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && showMessage) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur lors de la sauvegarde: $e')),
         );
       }
+    }
+  }
+
+  void _validateTemplate(MagicSet template) {
+    if (template.name.isEmpty) {
+      throw ValidationException('Le nom du template est requis');
+    }
+    if (template.name.length < 3) {
+      throw ValidationException('Le nom doit contenir au moins 3 caractères');
     }
   }
 }
@@ -471,5 +494,165 @@ class AddMetadataDialogState extends State<AddMetadataDialog> {
         ),
       ],
     );
+  }
+}
+class MetadataValidator {
+  static const Set<String> reservedKeys = {
+    'bpm', 'key', 'energy', 'mode', 'tempo',
+    'duration', 'time_signature', 'camelot_key'
+  };
+
+  static String? validateMetadataKey(String key, Map<String, dynamic> existingMetadata) {
+    if (key.isEmpty) return 'La clé est requise';
+    if (reservedKeys.contains(key.toLowerCase())) {
+      return 'Cette clé est réservée';
+    }
+    if (existingMetadata.containsKey(key)) {
+      return 'Cette clé existe déjà';
+    }
+    if (!RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*$').hasMatch(key)) {
+      return 'La clé doit commencer par une lettre et ne contenir que des lettres, chiffres et _';
+    }
+    return null;
+  }
+
+  static String? validateMetadataValue(String value, String key) {
+    if (value.isEmpty) return 'La valeur est requise';
+    return null;
+  }
+}
+class MetadataEditorDialog extends StatefulWidget {
+  final String? initialKey;
+  final dynamic initialValue;
+  final Map<String, dynamic> existingMetadata;
+
+  const MetadataEditorDialog({
+    Key? key,
+    this.initialKey,
+    this.initialValue,
+    required this.existingMetadata,
+  }) : super(key: key);
+
+  @override
+  MetadataEditorDialogState createState() => MetadataEditorDialogState();
+}
+
+class MetadataEditorDialogState extends State<MetadataEditorDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _keyController;
+  late final TextEditingController _valueController;
+  String _selectedType = 'text';
+
+  @override
+  void initState() {
+    super.initState();
+    _keyController = TextEditingController(text: widget.initialKey ?? '');
+    _valueController = TextEditingController(
+      text: widget.initialValue?.toString() ?? '',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.initialKey != null ? 'Modifier la métadonnée' : 'Ajouter une métadonnée'),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: _keyController,
+              decoration: const InputDecoration(
+                labelText: 'Clé',
+                hintText: 'ex: bpm, energy, mood',
+              ),
+              enabled: widget.initialKey == null,
+              validator: (value) => MetadataValidator.validateMetadataKey(
+                value ?? '',
+                widget.existingMetadata,
+              ),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _selectedType,
+              decoration: const InputDecoration(labelText: 'Type'),
+              items: const [
+                DropdownMenuItem(value: 'text', child: Text('Texte')),
+                DropdownMenuItem(value: 'number', child: Text('Nombre')),
+                DropdownMenuItem(value: 'boolean', child: Text('Booléen')),
+              ],
+              onChanged: (value) => setState(() => _selectedType = value!),
+            ),
+            const SizedBox(height: 16),
+            _buildValueField(),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Annuler'),
+        ),
+        ElevatedButton(
+          onPressed: _submit,
+          child: const Text('Valider'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildValueField() {
+    switch (_selectedType) {
+      case 'number':
+        return TextFormField(
+          controller: _valueController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: 'Valeur'),
+          validator: (value) {
+            if (value == null || value.isEmpty) return 'La valeur est requise';
+            if (double.tryParse(value) == null) return 'Nombre invalide';
+            return null;
+          },
+        );
+      case 'boolean':
+        return SwitchListTile(
+          title: const Text('Valeur'),
+          value: _valueController.text.toLowerCase() == 'true',
+          onChanged: (value) {
+            setState(() => _valueController.text = value.toString());
+          },
+        );
+      default:
+        return TextFormField(
+          controller: _valueController,
+          decoration: const InputDecoration(labelText: 'Valeur'),
+          validator: (value) => MetadataValidator.validateMetadataValue(
+            value ?? '',
+            _keyController.text,
+          ),
+        );
+    }
+  }
+
+  void _submit() {
+    if (_formKey.currentState!.validate()) {
+      final value = _parseValue();
+      Navigator.pop(context, {
+        'key': _keyController.text,
+        'value': value,
+      });
+    }
+  }
+
+  dynamic _parseValue() {
+    switch (_selectedType) {
+      case 'number':
+        return double.parse(_valueController.text);
+      case 'boolean':
+        return _valueController.text.toLowerCase() == 'true';
+      default:
+        return _valueController.text;
+    }
   }
 }

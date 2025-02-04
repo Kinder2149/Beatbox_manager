@@ -14,6 +14,632 @@ T _$identity<T>(T value) => value;
 final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
+/// @nodoc
+mixin _$PaginationInfo {
+  int get currentPage => throw _privateConstructorUsedError;
+  int get itemsPerPage => throw _privateConstructorUsedError;
+  bool get hasReachedEnd => throw _privateConstructorUsedError;
+  int get totalItems => throw _privateConstructorUsedError;
+
+  /// Create a copy of PaginationInfo
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $PaginationInfoCopyWith<PaginationInfo> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $PaginationInfoCopyWith<$Res> {
+  factory $PaginationInfoCopyWith(
+          PaginationInfo value, $Res Function(PaginationInfo) then) =
+      _$PaginationInfoCopyWithImpl<$Res, PaginationInfo>;
+  @useResult
+  $Res call(
+      {int currentPage, int itemsPerPage, bool hasReachedEnd, int totalItems});
+}
+
+/// @nodoc
+class _$PaginationInfoCopyWithImpl<$Res, $Val extends PaginationInfo>
+    implements $PaginationInfoCopyWith<$Res> {
+  _$PaginationInfoCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of PaginationInfo
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? currentPage = null,
+    Object? itemsPerPage = null,
+    Object? hasReachedEnd = null,
+    Object? totalItems = null,
+  }) {
+    return _then(_value.copyWith(
+      currentPage: null == currentPage
+          ? _value.currentPage
+          : currentPage // ignore: cast_nullable_to_non_nullable
+              as int,
+      itemsPerPage: null == itemsPerPage
+          ? _value.itemsPerPage
+          : itemsPerPage // ignore: cast_nullable_to_non_nullable
+              as int,
+      hasReachedEnd: null == hasReachedEnd
+          ? _value.hasReachedEnd
+          : hasReachedEnd // ignore: cast_nullable_to_non_nullable
+              as bool,
+      totalItems: null == totalItems
+          ? _value.totalItems
+          : totalItems // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$PaginationInfoImplCopyWith<$Res>
+    implements $PaginationInfoCopyWith<$Res> {
+  factory _$$PaginationInfoImplCopyWith(_$PaginationInfoImpl value,
+          $Res Function(_$PaginationInfoImpl) then) =
+      __$$PaginationInfoImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {int currentPage, int itemsPerPage, bool hasReachedEnd, int totalItems});
+}
+
+/// @nodoc
+class __$$PaginationInfoImplCopyWithImpl<$Res>
+    extends _$PaginationInfoCopyWithImpl<$Res, _$PaginationInfoImpl>
+    implements _$$PaginationInfoImplCopyWith<$Res> {
+  __$$PaginationInfoImplCopyWithImpl(
+      _$PaginationInfoImpl _value, $Res Function(_$PaginationInfoImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of PaginationInfo
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? currentPage = null,
+    Object? itemsPerPage = null,
+    Object? hasReachedEnd = null,
+    Object? totalItems = null,
+  }) {
+    return _then(_$PaginationInfoImpl(
+      currentPage: null == currentPage
+          ? _value.currentPage
+          : currentPage // ignore: cast_nullable_to_non_nullable
+              as int,
+      itemsPerPage: null == itemsPerPage
+          ? _value.itemsPerPage
+          : itemsPerPage // ignore: cast_nullable_to_non_nullable
+              as int,
+      hasReachedEnd: null == hasReachedEnd
+          ? _value.hasReachedEnd
+          : hasReachedEnd // ignore: cast_nullable_to_non_nullable
+              as bool,
+      totalItems: null == totalItems
+          ? _value.totalItems
+          : totalItems // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$PaginationInfoImpl implements _PaginationInfo {
+  const _$PaginationInfoImpl(
+      {this.currentPage = 0,
+      this.itemsPerPage = 20,
+      this.hasReachedEnd = false,
+      this.totalItems = 0});
+
+  @override
+  @JsonKey()
+  final int currentPage;
+  @override
+  @JsonKey()
+  final int itemsPerPage;
+  @override
+  @JsonKey()
+  final bool hasReachedEnd;
+  @override
+  @JsonKey()
+  final int totalItems;
+
+  @override
+  String toString() {
+    return 'PaginationInfo(currentPage: $currentPage, itemsPerPage: $itemsPerPage, hasReachedEnd: $hasReachedEnd, totalItems: $totalItems)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PaginationInfoImpl &&
+            (identical(other.currentPage, currentPage) ||
+                other.currentPage == currentPage) &&
+            (identical(other.itemsPerPage, itemsPerPage) ||
+                other.itemsPerPage == itemsPerPage) &&
+            (identical(other.hasReachedEnd, hasReachedEnd) ||
+                other.hasReachedEnd == hasReachedEnd) &&
+            (identical(other.totalItems, totalItems) ||
+                other.totalItems == totalItems));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      runtimeType, currentPage, itemsPerPage, hasReachedEnd, totalItems);
+
+  /// Create a copy of PaginationInfo
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PaginationInfoImplCopyWith<_$PaginationInfoImpl> get copyWith =>
+      __$$PaginationInfoImplCopyWithImpl<_$PaginationInfoImpl>(
+          this, _$identity);
+}
+
+abstract class _PaginationInfo implements PaginationInfo {
+  const factory _PaginationInfo(
+      {final int currentPage,
+      final int itemsPerPage,
+      final bool hasReachedEnd,
+      final int totalItems}) = _$PaginationInfoImpl;
+
+  @override
+  int get currentPage;
+  @override
+  int get itemsPerPage;
+  @override
+  bool get hasReachedEnd;
+  @override
+  int get totalItems;
+
+  /// Create a copy of PaginationInfo
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$PaginationInfoImplCopyWith<_$PaginationInfoImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+mixin _$SyncInfo {
+  bool get isSyncing => throw _privateConstructorUsedError;
+  DateTime? get lastSync => throw _privateConstructorUsedError;
+  Map<String, DateTime> get lastSetSync => throw _privateConstructorUsedError;
+
+  /// Create a copy of SyncInfo
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $SyncInfoCopyWith<SyncInfo> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $SyncInfoCopyWith<$Res> {
+  factory $SyncInfoCopyWith(SyncInfo value, $Res Function(SyncInfo) then) =
+      _$SyncInfoCopyWithImpl<$Res, SyncInfo>;
+  @useResult
+  $Res call(
+      {bool isSyncing, DateTime? lastSync, Map<String, DateTime> lastSetSync});
+}
+
+/// @nodoc
+class _$SyncInfoCopyWithImpl<$Res, $Val extends SyncInfo>
+    implements $SyncInfoCopyWith<$Res> {
+  _$SyncInfoCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of SyncInfo
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? isSyncing = null,
+    Object? lastSync = freezed,
+    Object? lastSetSync = null,
+  }) {
+    return _then(_value.copyWith(
+      isSyncing: null == isSyncing
+          ? _value.isSyncing
+          : isSyncing // ignore: cast_nullable_to_non_nullable
+              as bool,
+      lastSync: freezed == lastSync
+          ? _value.lastSync
+          : lastSync // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      lastSetSync: null == lastSetSync
+          ? _value.lastSetSync
+          : lastSetSync // ignore: cast_nullable_to_non_nullable
+              as Map<String, DateTime>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$SyncInfoImplCopyWith<$Res>
+    implements $SyncInfoCopyWith<$Res> {
+  factory _$$SyncInfoImplCopyWith(
+          _$SyncInfoImpl value, $Res Function(_$SyncInfoImpl) then) =
+      __$$SyncInfoImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {bool isSyncing, DateTime? lastSync, Map<String, DateTime> lastSetSync});
+}
+
+/// @nodoc
+class __$$SyncInfoImplCopyWithImpl<$Res>
+    extends _$SyncInfoCopyWithImpl<$Res, _$SyncInfoImpl>
+    implements _$$SyncInfoImplCopyWith<$Res> {
+  __$$SyncInfoImplCopyWithImpl(
+      _$SyncInfoImpl _value, $Res Function(_$SyncInfoImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of SyncInfo
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? isSyncing = null,
+    Object? lastSync = freezed,
+    Object? lastSetSync = null,
+  }) {
+    return _then(_$SyncInfoImpl(
+      isSyncing: null == isSyncing
+          ? _value.isSyncing
+          : isSyncing // ignore: cast_nullable_to_non_nullable
+              as bool,
+      lastSync: freezed == lastSync
+          ? _value.lastSync
+          : lastSync // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      lastSetSync: null == lastSetSync
+          ? _value._lastSetSync
+          : lastSetSync // ignore: cast_nullable_to_non_nullable
+              as Map<String, DateTime>,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$SyncInfoImpl implements _SyncInfo {
+  const _$SyncInfoImpl(
+      {this.isSyncing = false,
+      this.lastSync,
+      final Map<String, DateTime> lastSetSync = const {}})
+      : _lastSetSync = lastSetSync;
+
+  @override
+  @JsonKey()
+  final bool isSyncing;
+  @override
+  final DateTime? lastSync;
+  final Map<String, DateTime> _lastSetSync;
+  @override
+  @JsonKey()
+  Map<String, DateTime> get lastSetSync {
+    if (_lastSetSync is EqualUnmodifiableMapView) return _lastSetSync;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_lastSetSync);
+  }
+
+  @override
+  String toString() {
+    return 'SyncInfo(isSyncing: $isSyncing, lastSync: $lastSync, lastSetSync: $lastSetSync)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$SyncInfoImpl &&
+            (identical(other.isSyncing, isSyncing) ||
+                other.isSyncing == isSyncing) &&
+            (identical(other.lastSync, lastSync) ||
+                other.lastSync == lastSync) &&
+            const DeepCollectionEquality()
+                .equals(other._lastSetSync, _lastSetSync));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, isSyncing, lastSync,
+      const DeepCollectionEquality().hash(_lastSetSync));
+
+  /// Create a copy of SyncInfo
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$SyncInfoImplCopyWith<_$SyncInfoImpl> get copyWith =>
+      __$$SyncInfoImplCopyWithImpl<_$SyncInfoImpl>(this, _$identity);
+}
+
+abstract class _SyncInfo implements SyncInfo {
+  const factory _SyncInfo(
+      {final bool isSyncing,
+      final DateTime? lastSync,
+      final Map<String, DateTime> lastSetSync}) = _$SyncInfoImpl;
+
+  @override
+  bool get isSyncing;
+  @override
+  DateTime? get lastSync;
+  @override
+  Map<String, DateTime> get lastSetSync;
+
+  /// Create a copy of SyncInfo
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$SyncInfoImplCopyWith<_$SyncInfoImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+mixin _$MagicSetState {
+  AsyncValue<List<MagicSet>> get sets => throw _privateConstructorUsedError;
+  AsyncValue<List<MagicSet>> get templates =>
+      throw _privateConstructorUsedError;
+  PaginationInfo get pagination => throw _privateConstructorUsedError;
+  SyncInfo get syncInfo => throw _privateConstructorUsedError;
+  String? get error => throw _privateConstructorUsedError;
+
+  /// Create a copy of MagicSetState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $MagicSetStateCopyWith<MagicSetState> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $MagicSetStateCopyWith<$Res> {
+  factory $MagicSetStateCopyWith(
+          MagicSetState value, $Res Function(MagicSetState) then) =
+      _$MagicSetStateCopyWithImpl<$Res, MagicSetState>;
+  @useResult
+  $Res call(
+      {AsyncValue<List<MagicSet>> sets,
+      AsyncValue<List<MagicSet>> templates,
+      PaginationInfo pagination,
+      SyncInfo syncInfo,
+      String? error});
+
+  $PaginationInfoCopyWith<$Res> get pagination;
+  $SyncInfoCopyWith<$Res> get syncInfo;
+}
+
+/// @nodoc
+class _$MagicSetStateCopyWithImpl<$Res, $Val extends MagicSetState>
+    implements $MagicSetStateCopyWith<$Res> {
+  _$MagicSetStateCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of MagicSetState
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? sets = null,
+    Object? templates = null,
+    Object? pagination = null,
+    Object? syncInfo = null,
+    Object? error = freezed,
+  }) {
+    return _then(_value.copyWith(
+      sets: null == sets
+          ? _value.sets
+          : sets // ignore: cast_nullable_to_non_nullable
+              as AsyncValue<List<MagicSet>>,
+      templates: null == templates
+          ? _value.templates
+          : templates // ignore: cast_nullable_to_non_nullable
+              as AsyncValue<List<MagicSet>>,
+      pagination: null == pagination
+          ? _value.pagination
+          : pagination // ignore: cast_nullable_to_non_nullable
+              as PaginationInfo,
+      syncInfo: null == syncInfo
+          ? _value.syncInfo
+          : syncInfo // ignore: cast_nullable_to_non_nullable
+              as SyncInfo,
+      error: freezed == error
+          ? _value.error
+          : error // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ) as $Val);
+  }
+
+  /// Create a copy of MagicSetState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PaginationInfoCopyWith<$Res> get pagination {
+    return $PaginationInfoCopyWith<$Res>(_value.pagination, (value) {
+      return _then(_value.copyWith(pagination: value) as $Val);
+    });
+  }
+
+  /// Create a copy of MagicSetState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $SyncInfoCopyWith<$Res> get syncInfo {
+    return $SyncInfoCopyWith<$Res>(_value.syncInfo, (value) {
+      return _then(_value.copyWith(syncInfo: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$MagicSetStateImplCopyWith<$Res>
+    implements $MagicSetStateCopyWith<$Res> {
+  factory _$$MagicSetStateImplCopyWith(
+          _$MagicSetStateImpl value, $Res Function(_$MagicSetStateImpl) then) =
+      __$$MagicSetStateImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {AsyncValue<List<MagicSet>> sets,
+      AsyncValue<List<MagicSet>> templates,
+      PaginationInfo pagination,
+      SyncInfo syncInfo,
+      String? error});
+
+  @override
+  $PaginationInfoCopyWith<$Res> get pagination;
+  @override
+  $SyncInfoCopyWith<$Res> get syncInfo;
+}
+
+/// @nodoc
+class __$$MagicSetStateImplCopyWithImpl<$Res>
+    extends _$MagicSetStateCopyWithImpl<$Res, _$MagicSetStateImpl>
+    implements _$$MagicSetStateImplCopyWith<$Res> {
+  __$$MagicSetStateImplCopyWithImpl(
+      _$MagicSetStateImpl _value, $Res Function(_$MagicSetStateImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MagicSetState
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? sets = null,
+    Object? templates = null,
+    Object? pagination = null,
+    Object? syncInfo = null,
+    Object? error = freezed,
+  }) {
+    return _then(_$MagicSetStateImpl(
+      sets: null == sets
+          ? _value.sets
+          : sets // ignore: cast_nullable_to_non_nullable
+              as AsyncValue<List<MagicSet>>,
+      templates: null == templates
+          ? _value.templates
+          : templates // ignore: cast_nullable_to_non_nullable
+              as AsyncValue<List<MagicSet>>,
+      pagination: null == pagination
+          ? _value.pagination
+          : pagination // ignore: cast_nullable_to_non_nullable
+              as PaginationInfo,
+      syncInfo: null == syncInfo
+          ? _value.syncInfo
+          : syncInfo // ignore: cast_nullable_to_non_nullable
+              as SyncInfo,
+      error: freezed == error
+          ? _value.error
+          : error // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$MagicSetStateImpl extends _MagicSetState {
+  const _$MagicSetStateImpl(
+      {this.sets = const AsyncValue<List<MagicSet>>.loading(),
+      this.templates = const AsyncValue<List<MagicSet>>.loading(),
+      this.pagination = const PaginationInfo(),
+      this.syncInfo = const SyncInfo(),
+      this.error})
+      : super._();
+
+  @override
+  @JsonKey()
+  final AsyncValue<List<MagicSet>> sets;
+  @override
+  @JsonKey()
+  final AsyncValue<List<MagicSet>> templates;
+  @override
+  @JsonKey()
+  final PaginationInfo pagination;
+  @override
+  @JsonKey()
+  final SyncInfo syncInfo;
+  @override
+  final String? error;
+
+  @override
+  String toString() {
+    return 'MagicSetState(sets: $sets, templates: $templates, pagination: $pagination, syncInfo: $syncInfo, error: $error)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$MagicSetStateImpl &&
+            (identical(other.sets, sets) || other.sets == sets) &&
+            (identical(other.templates, templates) ||
+                other.templates == templates) &&
+            (identical(other.pagination, pagination) ||
+                other.pagination == pagination) &&
+            (identical(other.syncInfo, syncInfo) ||
+                other.syncInfo == syncInfo) &&
+            (identical(other.error, error) || other.error == error));
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, sets, templates, pagination, syncInfo, error);
+
+  /// Create a copy of MagicSetState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$MagicSetStateImplCopyWith<_$MagicSetStateImpl> get copyWith =>
+      __$$MagicSetStateImplCopyWithImpl<_$MagicSetStateImpl>(this, _$identity);
+}
+
+abstract class _MagicSetState extends MagicSetState {
+  const factory _MagicSetState(
+      {final AsyncValue<List<MagicSet>> sets,
+      final AsyncValue<List<MagicSet>> templates,
+      final PaginationInfo pagination,
+      final SyncInfo syncInfo,
+      final String? error}) = _$MagicSetStateImpl;
+  const _MagicSetState._() : super._();
+
+  @override
+  AsyncValue<List<MagicSet>> get sets;
+  @override
+  AsyncValue<List<MagicSet>> get templates;
+  @override
+  PaginationInfo get pagination;
+  @override
+  SyncInfo get syncInfo;
+  @override
+  String? get error;
+
+  /// Create a copy of MagicSetState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$MagicSetStateImplCopyWith<_$MagicSetStateImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
 Tag _$TagFromJson(Map<String, dynamic> json) {
   return _Tag.fromJson(json);
 }

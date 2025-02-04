@@ -59,40 +59,29 @@ class TagManagerScreenState extends ConsumerState<TagManagerScreen>
     final tagsState = ref.watch(tagsProvider);
 
     return WillPopScope(
-        onWillPop: () => onWillPop(),
-    child: Scaffold(
-      appBar: AppBar(
-        title: const Text('Gestion des Tags'),
-        actions: [
-          if (widget.initialSelectedTags != null)
-            TextButton.icon(
-              icon: const Icon(Icons.check, color: Colors.white),
-              label: const Text(
-                'Terminer',
-                style: TextStyle(color: Colors.white),
+      onWillPop: () => onWillPop(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Gestion des Tags'),
+          actions: [
+            if (widget.initialSelectedTags != null)
+              TextButton.icon(
+                icon: const Icon(Icons.check, color: Colors.white),
+                label: const Text('Terminer', style: TextStyle(color: Colors.white)),
+                onPressed: () => Navigator.pop(context, _selectedTags),
               ),
-              onPressed: () {
-                Navigator.pop(context, _selectedTags);
-              },
-            ),
-        ],
-      ),
-      body: Container(
-        decoration: AppTheme.gradientBackground,
-        child: Column(
-          children: [
-            _buildTagCreator(),
-            Expanded(
-              child: tagsState.when(
-                data: (tags) => _buildTagsList(tags),
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, stack) => Center(child: Text('Erreur: $err')),
-              ),
-            ),
           ],
         ),
+        body: Container(
+          decoration: AppTheme.gradientBackground,
+          child: tagsState.when(
+            data: (tags) => _buildTagsList(tags),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, stack) => Center(child: Text('Erreur: $err')),
+          ),
+        ),
+        floatingActionButton: _buildActionButton(),
       ),
-    ),
     );
   }
 
@@ -260,10 +249,25 @@ class TagManagerScreenState extends ConsumerState<TagManagerScreen>
       setState(() => _selectedColor = color);
     }
   }
+  Widget _buildActionButton() {
+    return FloatingActionButton(
+      onPressed: () => _showCreateTagDialog(context),
+      child: const Icon(Icons.add),
+      backgroundColor: AppTheme.spotifyGreen,
+    );
+  }
   // Dans TagManagerScreen
   Future<void> _showCreateTagDialog(BuildContext context) async {
     setState(() => _isEditing = true);
     try {
+      // Vérifier si le tag existe déjà
+      final existingTags = ref.read(tagsProvider).value ?? [];
+      if (existingTags.any((tag) => tag.name.toLowerCase() == _nameController.text.toLowerCase())) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Un tag avec ce nom existe déjà')),
+        );
+        return;
+      }
     _nameController.clear();
     setState(() => _selectedColor = Colors.blue);
 
@@ -363,6 +367,14 @@ class TagManagerScreenState extends ConsumerState<TagManagerScreen>
         );
       }
     }
+  }
+  void _resetForm() {
+    _nameController.clear();
+    setState(() {
+      _selectedColor = Colors.blue;
+      _selectedScope = TagScope.track;
+      _isEditing = false;
+    });
   }
 
   Future<void> _updateTag(Tag tag) async {
